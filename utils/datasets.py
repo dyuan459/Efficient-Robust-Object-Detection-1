@@ -42,7 +42,7 @@ class ImageFolder(Dataset): # only used in detect for some reason and not others
             Image.open(img_path).convert('RGB'),
             dtype=np.uint8)
 
-        # Label Placeholder
+        # Label Placeholder which is filled later
         boxes = np.zeros((1, 5))
 
         # Apply transforms

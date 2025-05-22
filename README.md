@@ -5,7 +5,7 @@ python3.8 -m venv env or python -m venv env
 
 env\Scripts\activate
 
-pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
+pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118 (NOTE: This is for CUDA 1.1.8)
 
 pip install -r requirements.txt
 
