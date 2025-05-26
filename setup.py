@@ -27,7 +27,8 @@ with open(
     ) as fp:
         if not file_check:
             first_char = fp.read(1)
-            if not first_char: file_check = True
+            if not first_char:
+                file_check = True
             else:
-                break
+                # break
 
