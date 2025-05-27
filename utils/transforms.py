@@ -89,14 +89,19 @@ class RelativeLabels(object):
 
 
 class AbsoluteLabels(object):
+    """
+    callable class that transforms relative labels to absolute labels by scaling them by width and height
+    """
     def __init__(self, ):
         pass
 
     def __call__(self, data):
-        img, boxes = data
-        _, h, w = img.shape
+        img, boxes = data # expects tuple data input
+        _, h, w = img.shape # image shape probably has 3 dimensions to it channels?, height, and width
+
         boxes[:, [2, 4]] *= w
         boxes[:, [3, 5]] *= h
+        # this formatting should mean that the expected input for boxes is an array of unspecific arrays and that columns 2 and 4 go to width and 3 and 5 go to height
         return img, boxes
 
 

@@ -4,3 +4,4 @@ env/
 weights/
 output/
 config/
+annotations_trainval2017/
