@@ -9,7 +9,7 @@ with open(
     annotations = json.load(f)
     with open(
             "classes\\class.txt",
-            "a+"
+            "w+"
     ) as fp:
         for r in annotations["categories"]: # setup names file
             if not file_check:
@@ -21,8 +21,10 @@ with open(
             fp.write(r["name"])
             fp.write("\n")
     file_check = False
-    train = [a["bbox"] for a in annotations["annotations"] if a["image_id"] == 9]
-    print(train)
+    bboxes = [a["bbox"] for a in annotations["annotations"] if a["image_id"] == 9] #formatted [x_top_left, y_top_left, width, height]
+    bboxes[:][0]+bboxes[:][2]/2
+
+    print(bboxes)
     # with open(
     #     "C:\\Users\\yyuan459\\PycharmProjects\\Efficient-Robust-Object-Detection\\labels\\train\\000000000009.txt", "w+"
     # ) as fp:

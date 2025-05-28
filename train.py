@@ -24,6 +24,7 @@ from terminaltables import AsciiTable
 
 from torchsummary import summary
 
+import math
 
 def _create_data_loader(img_path, batch_size, img_size, n_cpu, multiscale_training=False):
     """Creates a DataLoader for training.
@@ -99,12 +100,20 @@ def run():
 
     model = load_model(args.model, args.pretrained_weights)
 
+    model = model.to(device)  # ensures model is on GPU if available
+
     # Print model
     if args.verbose:
         summary(model, input_size=(3, model.hyperparams['height'], model.hyperparams['height']))
 
-    mini_batch_size = model.hyperparams['batch'] // model.hyperparams['subdivisions']
+    # mini_batch_size = model.hyperparams['batch'] // model.hyperparams['subdivisions']
 
+    #TODO: Explain exactly why this is better:
+
+    # With ceiling division:
+
+    mini_batch_size = math.ceil(model.hyperparams['batch'] / model.hyperparams['subdivisions'])
+    ###########################################
     # #################
     # Create Dataloader
     # #################
@@ -174,14 +183,38 @@ def run():
                 # Adapt learning rate
                 # Get learning rate defined in cfg
                 lr = model.hyperparams['learning_rate']
+
+
+                # if batches_done < model.hyperparams['burn_in']:
+                #     # Burn in
+                #     lr *= (batches_done / model.hyperparams['burn_in'])
+                #TODO: Explain exactly how this works:
+
+                # With absolute scaling:
                 if batches_done < model.hyperparams['burn_in']:
-                    # Burn in
-                    lr *= (batches_done / model.hyperparams['burn_in'])
+                    # Burn in - absolute scaling from 0 to base LR
+                    lr = model.hyperparams['learning_rate'] * (batches_done / model.hyperparams['burn_in'])
+
+                #####################################################
+                # else:
+                #     # Set and parse the learning rate to the steps defined in the cfg
+                #     for threshold, value in model.hyperparams['lr_steps']:
+                #         if batches_done > threshold:
+                #             lr *= value
+
+                #TODO: How to describe what this exactly does
                 else:
-                    # Set and parse the learning rate to the steps defined in the cfg
-                    for threshold, value in model.hyperparams['lr_steps']:
-                        if batches_done > threshold:
-                            lr *= value
+                    # Sort learning rate steps by threshold
+                    if 'lr_steps' in model.hyperparams:
+                        lr_steps = sorted(
+                            model.hyperparams['lr_steps'],
+                            key=lambda x: x[0]  # Sort by threshold
+                        )
+                        for threshold, value in lr_steps:
+                            if batches_done > threshold:
+                                lr *= value
+                ##################################################
+
                 # Log the learning rate
                 logger.scalar_summary("train/learning_rate", lr, batches_done)
                 # Set learning rate
@@ -196,16 +229,19 @@ def run():
             # ############
             # Log progress
             # ############
-            if args.verbose:
+            # if args.verbose:
+
+
+            if args.verbose and loss_components is not None and len(loss_components) >= 4:
                 print(AsciiTable(
-                    [
-                        ["Type", "Value"],
-                        ["IoU loss", float(loss_components[0])],
-                        ["Object loss", float(loss_components[1])],
-                        ["Class loss", float(loss_components[2])],
-                        ["Loss", float(loss_components[3])],
-                        ["Batch loss", to_cpu(loss).item()],
-                    ]).table)
+                        [
+                            ["Type", "Value"],
+                            ["IoU loss", float(loss_components[0])],
+                            ["Object loss", float(loss_components[1])],
+                            ["Class loss", float(loss_components[2])],
+                            ["Loss", float(loss_components[3])],
+                            ["Batch loss", to_cpu(loss).item()],
+                        ]).table)
 
             # Tensorboard logging
             tensorboard_log = [
@@ -245,14 +281,23 @@ def run():
                 verbose=args.verbose
             )
 
-            if metrics_output is not None:
+            # if metrics_output is not None:
+            #     precision, recall, AP, f1, ap_class = metrics_output
+
+            #TODO: Understand exactly how to explain this:
+
+            # With tuple unpacking guard:
+            if metrics_output is not None and len(metrics_output) == 5:
                 precision, recall, AP, f1, ap_class = metrics_output
+            #################################
                 evaluation_metrics = [
                     ("validation/precision", precision.mean()),
                     ("validation/recall", recall.mean()),
                     ("validation/mAP", AP.mean()),
                     ("validation/f1", f1.mean())]
                 logger.list_of_scalars_summary(evaluation_metrics, epoch)
+
+
 
 
 if __name__ == "__main__":
