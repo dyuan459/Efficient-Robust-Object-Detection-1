@@ -1,1 +1,1 @@
-C:\Users\yyuan459\OneDrive - The University of Western Ontario\Efficient-Robust-Object-Detection-master\Efficient-Robust-Object-Detection-master\valid\000000000139.jpg
+images\train\000000000009.jpg

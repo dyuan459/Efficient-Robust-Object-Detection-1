@@ -97,10 +97,10 @@ class AbsoluteLabels(object):
 
     def __call__(self, data):
         img, boxes = data # expects tuple data input
-        _, h, w = img.shape # image shape probably has 3 dimensions to it channels?, height, and width
+        _, h, w = img.shape # image shape probably has 3 dimensions to it: channels?, height, and width
 
-        boxes[:, [2, 4]] *= w
-        boxes[:, [3, 5]] *= h
+        boxes[:, [2, 4]] *= w # both item 3 and 5 have something to do with x
+        boxes[:, [3, 5]] *= h # both item 4 and 6 have something to do with y
         # this formatting should mean that the expected input for boxes is an array of unspecific arrays and that columns 2 and 4 go to width and 3 and 5 go to height
         return img, boxes
 

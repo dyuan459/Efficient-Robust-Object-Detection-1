@@ -1,5 +1,7 @@
 #! /usr/bin/env python3
-
+"""
+Needs train to run first!
+"""
 from __future__ import division
 
 import argparse

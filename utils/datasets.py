@@ -101,7 +101,13 @@ class ListDataset(Dataset):
             # Ignore warning if file is empty
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore")
-                boxes = np.loadtxt(label_path).reshape(-1, 5)
+
+            if os.path.exists(label_path) and os.stat(label_path).st_size > 0:
+                boxes = np.loadtxt(label_path).reshape(-1, 7)
+                print(f"Labels loaded for {img_path}: {boxes.shape}")
+            else:
+                print(f"No labels found for {img_path}")
+                boxes = np.zeros((0, 7))  # No labels available
         except Exception:
             print(f"Could not read label '{label_path}'.")
             return
@@ -109,6 +115,9 @@ class ListDataset(Dataset):
         # -----------
         #  Transform
         # -----------
+
+        #TODO: Here is the critical kicker, the transforms expect around 8 columns but we only give them 5!!!
+        # label files seem roughly in the format: image_id, category_id, x_center, y_center, width, height, orig_height, orig_width
         if self.transform:
             try:
                 img, bb_targets = self.transform((img, boxes))
