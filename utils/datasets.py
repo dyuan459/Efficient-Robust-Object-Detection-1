@@ -95,22 +95,22 @@ class ListDataset(Dataset):
         # ---------
         #  Label
         # ---------
-        try:
-            label_path = self.label_files[index % len(self.img_files)].rstrip()
+        # try:
+        label_path = self.label_files[index % len(self.img_files)].rstrip()
 
-            # Ignore warning if file is empty
-            with warnings.catch_warnings():
-                warnings.simplefilter("ignore")
+        # Ignore warning if file is empty
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
 
-            if os.path.exists(label_path) and os.stat(label_path).st_size > 0:
-                boxes = np.loadtxt(label_path).reshape(-1, 7)
-                print(f"Labels loaded for {img_path}: {boxes.shape}")
-            else:
-                print(f"No labels found for {img_path}")
-                boxes = np.zeros((0, 7))  # No labels available
-        except Exception:
-            print(f"Could not read label '{label_path}'.")
-            return
+        if os.path.exists(label_path) and os.stat(label_path).st_size > 0:
+            boxes = np.loadtxt(label_path).reshape(-1, 8)
+            print(f"Labels loaded for {img_path}: {boxes.shape}")
+        else:
+            print(f"No labels found for {img_path}")
+            boxes = np.zeros((0, 8))  # No labels available
+        # except Exception:
+        #     print(f"Could not read label '{label_path}'.")
+        #     return
 
         # -----------
         #  Transform
