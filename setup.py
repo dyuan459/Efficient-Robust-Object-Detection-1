@@ -1,4 +1,6 @@
 import json
+import os
+
 import numpy as np
 #
 #
@@ -109,7 +111,7 @@ def label_image(image_id, annotation_name):
 
         # Create label file
         str_im_id = str(image_id)
-        label_path = f"labels/train/{str_im_id.zfill(12)}.txt"
+        label_path = f"labels/valid/{str_im_id.zfill(12)}.txt"
 
         with open(label_path, "w") as fp:
             for ann in annotations["annotations"]:
@@ -133,4 +135,10 @@ def label_image(image_id, annotation_name):
 
                 fp.write(" ".join(map(str, label)) + "\n")
 
-label_image(9, "train2017")
+# label_image(9, "train2017")
+imgs = os.listdir("images/valid")
+for img in imgs:
+    print(img)
+    name = img.replace(".jpg", "")
+    num = int(name)
+    label_image(num, "val2017")
