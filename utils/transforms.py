@@ -73,7 +73,7 @@ import sys
 #             if boxes.shape[0] == 0: boxes = boxes[:, 0]
 #         return img, boxes
 class ImgAug(object):
-    def __init__(self, augmentations=[]):
+    def __init__(self, augmentations):
         self.augmentations = augmentations
 
     def __call__(self, data):
@@ -84,7 +84,7 @@ class ImgAug(object):
         # Handle single box case
         if boxes.ndim == 1:
             boxes = boxes.reshape(1, -1)
-
+        print("ia meta pre",boxes)
         # Extract metadata
         image_ids = boxes[:, 0].copy()  # 0: image_id
         category_ids = boxes[:, 1].copy()  # 1: category_id
@@ -95,23 +95,23 @@ class ImgAug(object):
 
         # Convert to xyxy format for augmentation
         bbox_values_xyxy = xywh2xyxy_np(bbox_values)
-
+        print("ia bboxes")
         # Create bounding boxes
         bounding_boxes = BoundingBoxesOnImage(
             [BoundingBox(x1=box[0], y1=box[1], x2=box[2], y2=box[3])
              for box in bbox_values_xyxy],
             shape=img.shape
         )
-
+        print("ia aug")
         # Apply augmentations
         img, bounding_boxes = self.augmentations(
             image=img,
             bounding_boxes=bounding_boxes
         )
-
+        print("ia aug done")
         # Clip boxes
         bounding_boxes = bounding_boxes.clip_out_of_image()
-
+        print("ia conversion")
         # Convert back to xywh format
         new_boxes = []
         for box in bounding_boxes:
@@ -120,10 +120,15 @@ class ImgAug(object):
             width = box.x2 - box.x1
             height = box.y2 - box.y1
             new_boxes.append([x_center, y_center, width, height])
-
+        print("ia meta combine")
         # Recombine with metadata
         if new_boxes:
+            print(new_boxes)
             bbox_values = np.array(new_boxes)
+            print("ia bbox",bbox_values)
+            print("ia ii", image_ids)
+            print("ia ci", category_ids)
+            print("ia orig", orig_sizes)
             # Reconstruct full 8-value format
             boxes = np.column_stack([
                 image_ids,
@@ -131,9 +136,10 @@ class ImgAug(object):
                 bbox_values,
                 orig_sizes
             ])
+            print("ia box",boxes)
         else:
             boxes = np.zeros((0, 8))
-
+        print("ia success", end="",flush=True)
         return img, boxes
 
 # class RelativeLabels(object):
@@ -213,9 +219,9 @@ class RelativeLabels(object):
 class PadSquare(ImgAug):
     def __init__(self):
         print("ps")
-        self.augmentations = iaa.Sequential([
+        super().__init__(iaa.Sequential([
             iaa.PadToAspectRatio(1.0, position="center-center").to_deterministic()
-        ])
+        ]))
         print("ps done")
 
     def __call__(self,data):
@@ -233,7 +239,7 @@ class PadSquare(ImgAug):
             bbox_values = np.zeros((0, 4))
 
         # Apply padding to image and bbox_values only
-        img, bbox_values = super().__call__(img, bbox_values)
+        img, bbox_values = super().__call__((img, bbox_values))
         print("ps super",end="", flush=True)
         # Reconstruct full boxes
         if bbox_values.size > 0:
