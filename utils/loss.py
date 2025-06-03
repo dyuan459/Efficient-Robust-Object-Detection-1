@@ -142,6 +142,8 @@ def build_targets(p, targets, model):
         # Add the number of yolo cells in this layer the gain tensor
         # The gain tensor matches the columns of our targets (img id, class, x, y, w, h, anchor id)
         gain[2:6] = torch.tensor(p[i].shape)[[3, 2, 3, 2]]  # xyxy gain
+        print("targets",targets.shape,flush=True)
+        print("gain",gain.shape,flush=True)
         # Scale targets by the number of yolo layer cells, they are now in the yolo cell coordinate system
         t = targets * gain # t is targets in yolo coordinates (img id, class, x, y, w, h, anchor id)
         

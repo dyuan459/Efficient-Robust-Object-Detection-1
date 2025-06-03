@@ -12,6 +12,7 @@ import torch.optim as optim
 
 from models.YOLOv3 import load_model
 from utils.logger import Logger
+from utils.transforms import DEFAULT_TRANSFORMS
 from utils.utils import to_cpu, load_classes, print_environment_info, provide_determinism, worker_seed_set
 from utils.datasets import ListDataset
 from utils.augmentations import AUGMENTATION_TRANSFORMS

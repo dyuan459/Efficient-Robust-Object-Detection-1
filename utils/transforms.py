@@ -10,30 +10,31 @@ import torchvision.transforms as transforms
 
 import sys
 
-#* modified transforms
+
+# * modified transforms
 # class ImgAug(object):
-#     def __init__(self, augmentations=[]):
+#     def __init__(self, augmentations):
 #         self.augmentations = augmentations
 #
-#     def __call__(self, img, boxes):
-#
+#     def __call__(self, data):
+#         img, boxes = data
 #         # np.set_printoptions(linewidth=500)
 #         # np.set_printoptions(suppress=True)
 #         # print("before padsquare", boxes.shape)
 #         # for box in boxes: print(box)
 #
-#
+#         print("ia squeeze start")
 #         if boxes.size != 0:
 #             if boxes.ndim > 2:
 #                 boxes = boxes.squeeze()
 #             if boxes.ndim == 1:
 #                 boxes = boxes.unsqueeze(0)
-#
+#             print("ia squeeze end")
 #
 #             # Convert xywh to xyxy
 #             boxes = np.array(boxes)
 #             image_size = boxes[:, 6:]
-#             category_labels = boxes[:, 1:2]
+#             category_labels = boxes[:, 1:2] # sus, is this treating python as 1-indexed?
 #             boxes[:, 2:6] = xywh2xyxy_np(boxes[:, 2:6])
 #             # print("1", boxes.shape)
 #
@@ -41,12 +42,12 @@ import sys
 #             bounding_boxes = BoundingBoxesOnImage(
 #                 [BoundingBox(*box[2:6], label=box[0:1]) for box in boxes],
 #                 shape=img.shape)
-#
+#             print("ia aug start", flush=True)
 #             # Apply augmentations
 #             img, bounding_boxes = self.augmentations(
 #                 image=img,
 #                 bounding_boxes=bounding_boxes)
-#
+#             print("ia aug end", flush=True)
 #             # Clip out of image boxes
 #             bounding_boxes = bounding_boxes.clip_out_of_image()
 #
@@ -67,7 +68,7 @@ import sys
 #                 boxes[box_idx, 4] = (x2 - x1)
 #                 boxes[box_idx, 5] = (y2 - y1)
 #
-#             # print(image_ids.shape, boxes.shape)
+#             print(image_size.shape, boxes.shape)
 #             boxes = np.hstack((boxes, image_size)) # append the image size back on
 #             boxes[:, 1:2] = category_labels
 #             if boxes.shape[0] == 0: boxes = boxes[:, 0]
@@ -84,7 +85,7 @@ class ImgAug(object):
         # Handle single box case
         if boxes.ndim == 1:
             boxes = boxes.reshape(1, -1)
-        print("ia meta pre",boxes)
+        print("ia meta pre", boxes)
         # Extract metadata
         image_ids = boxes[:, 0].copy()  # 0: image_id
         category_ids = boxes[:, 1].copy()  # 1: category_id
@@ -114,33 +115,37 @@ class ImgAug(object):
         print("ia conversion")
         # Convert back to xywh format
         new_boxes = []
-        for box in bounding_boxes:
-            x_center = (box.x1 + box.x2) / 2
-            y_center = (box.y1 + box.y2) / 2
-            width = box.x2 - box.x1
-            height = box.y2 - box.y1
-            new_boxes.append([x_center, y_center, width, height])
+        kept_indices = []
+        for i, box in enumerate(bounding_boxes):
+            if box.is_fully_within_image(img): # make sure to check if box is dropped
+                x_center = (box.x1 + box.x2) / 2
+                y_center = (box.y1 + box.y2) / 2
+                width = box.x2 - box.x1
+                height = box.y2 - box.y1
+                new_boxes.append([x_center, y_center, width, height])
+                kept_indices.append(i)
         print("ia meta combine")
         # Recombine with metadata
         if new_boxes:
-            print(new_boxes)
+            # print(new_boxes)
             bbox_values = np.array(new_boxes)
-            print("ia bbox",bbox_values)
-            print("ia ii", image_ids)
-            print("ia ci", category_ids)
-            print("ia orig", orig_sizes)
+            print("ia bbox", bbox_values.shape)
+            print("ia ii", image_ids.shape)
+            print("ia ci", category_ids.shape)
+            print("ia orig", orig_sizes.shape)
             # Reconstruct full 8-value format
             boxes = np.column_stack([
-                image_ids,
-                category_ids,
+                image_ids[kept_indices],  # Filtered metadata
+                category_ids[kept_indices],
                 bbox_values,
-                orig_sizes
+                orig_sizes[kept_indices]
             ])
-            print("ia box",boxes)
+            print("ia box", boxes)
         else:
             boxes = np.zeros((0, 8))
-        print("ia success", end="",flush=True)
+        print("ia success", end="", flush=True)
         return img, boxes
+
 
 # class RelativeLabels(object):
 #     def __init__(self, ):
@@ -168,9 +173,10 @@ class ImgAug(object):
 #     def __call__(self, data):
 #         img, boxes = data # expects tuple data input
 #         _, h, w = img.shape # image shape probably has 3 dimensions to it: channels?, height, and width
-#
-#         boxes[:, [2, 4]] *= w # both item 3 and 5 have something to do with x
-#         boxes[:, [3, 5]] *= h # both item 4 and 6 have something to do with y
+## both item 3 and 5 have something to do with x
+        # boxes[:, [2, 4]] *= w
+        # boxes[:, [3, 5]] *= h
+# both item 4 and 6 have something to do with y
 #         # this formatting should mean that the expected input for boxes is an array of unspecific arrays and that columns 2 and 4 go to width and 3 and 5 go to height
 #         return img, boxes
 
@@ -208,6 +214,7 @@ class RelativeLabels(object):
         boxes[:, [3, 5]] /= h  # y_center and height
         return img, boxes
 
+
 # class PadSquare(ImgAug):
 #     def __init__(self, ):
 #         self.augmentations = iaa.Sequential([
@@ -224,60 +231,64 @@ class PadSquare(ImgAug):
         ]))
         print("ps done")
 
-    def __call__(self,data):
+    def __call__(self, data):
         img, boxes = data
-        print(f"ps Pre-transform: {boxes[0] if boxes.size > 0 else 'empty'}",end="", flush=True)
-        if boxes.size > 0:
-            # Save metadata
-            metadata = boxes[:, :6].copy()  # First 6 columns
-            orig_sizes = boxes[:, 6:8].copy()
-            bbox_values = boxes[:, 2:6].copy()
-            print("ps metadata",end="", flush=True)
-        else:
-            metadata = np.zeros((0, 6))
-            orig_sizes = np.zeros((0, 2))
-            bbox_values = np.zeros((0, 4))
+        print(f"ps Pre-transform: {boxes[0] if boxes.size > 0 else 'empty'}", end="", flush=True)
+        # if boxes.size > 0:
+        #     # Save metadata
+        #     metadata = boxes[:, :6].copy()  # First 6 columns
+        #     orig_sizes = boxes[:, 6:8].copy()
+        #     bbox_values = boxes[:, 2:6].copy()
+        #     print("ps metadata",end="", flush=True)
+        # else:
+        #     metadata = np.zeros((0, 6))
+        #     orig_sizes = np.zeros((0, 2))
+        #     bbox_values = np.zeros((0, 4))
 
         # Apply padding to image and bbox_values only
-        img, bbox_values = super().__call__((img, bbox_values))
-        print("ps super",end="", flush=True)
+        img, bbox_values = super().__call__((img, boxes))
+        print("ps super", end="", flush=True)
         # Reconstruct full boxes
         if bbox_values.size > 0:
-            boxes = np.hstack([
-                metadata[:, :2],  # image_id, category_id
-                bbox_values,
-                metadata[:, 4:6],  # ? (depends on your format)
-                orig_sizes
-            ])
-            print("ps recon",end="", flush=True)
+            # boxes = np.hstack([
+            #     metadata[:, :2],  # image_id, category_id
+            #     bbox_values,
+            #     metadata[:, 4:6],  # ? (depends on your format)
+            #     orig_sizes
+            # ])
+            print("ps recon", end="", flush=True)
         else:
             boxes = np.zeros((0, 8))
-        print("ps success",end="", flush=True)
+        print("ps success", end="", flush=True)
+        return img, boxes
+
+
+class ToTensor(object):
+    def __init__(self, ):
+        pass
+
+    def __call__(self, data):
+        img, boxes = data
+        img = transforms.ToTensor()(img)
+        boxes = boxes[:, 0:6]
+        boxes = torch.tensor(boxes)
         return img, boxes
 
 # class ToTensor(object):
-#     def __init__(self, ):
-#         pass
-#
-#     def __call__(self, img, boxes):
+#     def __call__(self, data):
+#         img, boxes = data
+#         print(f"tt Pre-transform: {boxes[0] if boxes.size > 0 else 'empty'}")
+#         # Convert image
 #         img = transforms.ToTensor()(img)
-#         boxes = torch.tensor(boxes)
+#
+#         # Convert boxes
+#         if isinstance(boxes, np.ndarray):
+#             boxes = torch.from_numpy(boxes).float()
+#         elif not isinstance(boxes, torch.Tensor):
+#             boxes = torch.zeros((0, 8))
+#         print("tt success")
 #         return img, boxes
 
-class ToTensor(object):
-    def __call__(self, data):
-        img, boxes = data
-        print(f"tt Pre-transform: {boxes[0] if boxes.size > 0 else 'empty'}")
-        # Convert image
-        img = transforms.ToTensor()(img)
-
-        # Convert boxes
-        if isinstance(boxes, np.ndarray):
-            boxes = torch.from_numpy(boxes).float()
-        elif not isinstance(boxes, torch.Tensor):
-            boxes = torch.zeros((0, 8))
-        print("tt success")
-        return img, boxes
 
 class Resize(object):
     def __init__(self, size):
@@ -288,9 +299,9 @@ class Resize(object):
         return img, boxes
 
 
-#* original transforms, not in use
+# * original transforms, not in use
 class ImgAugEval(object):
-    def __init__(self, augmentations=[]):
+    def __init__(self, augmentations):
         self.augmentations = augmentations
 
     def __call__(self, data):
@@ -331,7 +342,8 @@ class ImgAugEval(object):
             boxes[box_idx, 4] = (y2 - y1)
 
         return img, boxes
-    
+
+
 class ResizeEval(object):
     def __init__(self, size):
         self.size = size
@@ -339,8 +351,9 @@ class ResizeEval(object):
     def __call__(self, data):
         img, boxes = data
         img = F.interpolate(img.unsqueeze(0), size=self.size, mode="nearest").squeeze(0)
-        return img, boxes   
-        
+        return img, boxes
+
+
 class RelativeLabelsEval(object):
     def __init__(self, ):
         pass
@@ -351,7 +364,8 @@ class RelativeLabelsEval(object):
         boxes[:, [1, 3]] /= w
         boxes[:, [2, 4]] /= h
         return img, boxes
-    
+
+
 class AbsoluteLabelsEval(object):
     def __init__(self, ):
         pass
@@ -362,7 +376,8 @@ class AbsoluteLabelsEval(object):
         boxes[:, [1, 3]] *= w
         boxes[:, [2, 4]] *= h
         return img, boxes
-    
+
+
 class PadSquareEval(ImgAugEval):
     def __init__(self, ):
         self.augmentations = iaa.Sequential([
@@ -370,7 +385,8 @@ class PadSquareEval(ImgAugEval):
                 1.0,
                 position="center-center").to_deterministic()
         ])
-        
+
+
 class ToTensorEval(object):
     def __init__(self, ):
         pass
@@ -384,11 +400,12 @@ class ToTensorEval(object):
         bb_targets[:, 1:] = transforms.ToTensor()(boxes)
 
         return img, bb_targets
-    
+
+
 class ConvertToArrays():
     def __init__(self, ):
         pass
-    
+
     def __call__(self, img, boxes):
         transformed_samples = []
         width, height = img.size
@@ -398,7 +415,7 @@ class ConvertToArrays():
                 box['image_id'],
                 box['category_id'],
                 *box['bbox'],
-                height, # put original image shape in the right columns of target (h,w)
+                height,  # put original image shape in the right columns of target (h,w)
                 width,
             ])
             transformed_samples.append(transformed_sample)

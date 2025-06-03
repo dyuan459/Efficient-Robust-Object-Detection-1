@@ -84,9 +84,8 @@ class ListDataset(Dataset):
         #  Image
         # ---------
         try:
-
             img_path = self.img_files[index % len(self.img_files)].rstrip()
-
+            print("rstripped",img_path,flush=True)
             img = np.array(Image.open(img_path).convert('RGB'), dtype=np.uint8)
         except Exception:
             print(f"Could not read image '{img_path}'.")
@@ -121,8 +120,8 @@ class ListDataset(Dataset):
         if self.transform:
             try:
                 img, bb_targets = self.transform((img, boxes))
-            except Exception:
-                print("Could not apply transform.")
+            except Exception as e:
+                print(f"Could not apply transform for {img_path} due to {e}.")
                 return
 
         return img_path, img, bb_targets
