@@ -162,16 +162,16 @@ def label_image_con(valtrain): # remember only either "valid" or "train"
                     # Original COCO bbox format
                     x, y, w, h = ann["bbox"]
                     if valtrain == "train":
-                        # Create 8-value label
+                        # Create 5-value label
                         label = [
-                            image_id,  # 0
+                            # image_id,  # 0
                             ann["category_id"],  # 1
                             (x + w / 2) / img_width,  # 2
                             (y + h / 2) / img_height,  # 3
                             w / img_width,  # 4
                             h / img_height,  # 5
-                            img_height,  # 6
-                            img_width  # 7
+                            # img_height,  # 6
+                            # img_width  # 7
                         ]
                     elif valtrain == "valid":
                         label = [
@@ -197,11 +197,11 @@ with open("data/COCO2017/5k.txt", "w") as f:
         train_label(num, "train2017", 80)
         f.write("images/train/" + img + "\n")
 
-imgs = os.listdir("images/valid")
-with open("data/COCO2017/trainvalno5k.txt", "w") as f:
-    for img in imgs:
-        print(img)
-        name = img.replace(".jpg", "")
-        num = int(name)
-        val_label(num, "val2017", 80)
-        f.write("images/train/" + img + "\n")
+# imgs = os.listdir("images/valid")
+# with open("data/COCO2017/trainvalno5k.txt", "w") as f:
+#     for img in imgs:
+#         print(img)
+#         name = img.replace(".jpg", "")
+#         num = int(name)
+#         val_label(num, "val2017", 80)
+#         f.write("images/valid/" + img + "\n")

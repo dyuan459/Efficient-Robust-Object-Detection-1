@@ -379,12 +379,17 @@ class AbsoluteLabelsEval(object):
 
 
 class PadSquareEval(ImgAugEval):
-    def __init__(self, ):
-        self.augmentations = iaa.Sequential([
+    def __init__(self):
+        super().__init__(iaa.Sequential([
             iaa.PadToAspectRatio(
                 1.0,
                 position="center-center").to_deterministic()
-        ])
+        ]))
+
+    def __call__(self, data):
+        img, bbox_values = super().__call__(data)
+        print("ps Pre-transform", end="", flush=True)
+        return img, bbox_values
 
 
 class ToTensorEval(object):

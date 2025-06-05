@@ -102,7 +102,7 @@ class ListDataset(Dataset):
             warnings.simplefilter("ignore")
 
         if os.path.exists(label_path) and os.stat(label_path).st_size > 0:
-            boxes = np.loadtxt(label_path).reshape(-1, 8)
+            boxes = np.loadtxt(label_path).reshape(-1, 5)
             print(f"Labels loaded for {img_path}: {boxes.shape}")
         else:
             print(f"No labels found for {img_path}")
