@@ -99,53 +99,46 @@ import numpy as np
 # # label_dir = "labels/"
 #
 
-def label_image_training(image_id, annotation_name, category_lim):
-    anno_path = f"annotations_trainval2017/annotations/instances_{annotation_name}.json"
+# def label_image_training(image_id, annotation_name, category_lim):
+#     anno_path = f"annotations_trainval2017/annotations/instances_{annotation_name}.json"
+#
+#     with open(anno_path, "r") as f:
+#         annotations = json.load(f)
+#
+#         # Get image dimensions
+#         image_info = next(i for i in annotations["images"] if i["id"] == image_id)
+#         img_width, img_height = image_info["width"], image_info["height"]
+#
+#         # Create label file
+#         str_im_id = str(image_id)
+#         label_path = f"labels/train/{str_im_id.zfill(12)}.txt" # TODO: make this automated
+#
+#         with open(label_path, "w") as fp:
+#             for ann in annotations["annotations"]:
+#                 if ann["image_id"] != image_id or ann["category_id"] > category_lim:
+#                     continue
+#
+#                 # Original COCO bbox format
+#                 x, y, w, h = ann["bbox"]
+#
+#                 # Create 8-value label
+#                 label = [
+#                     image_id,  # 0
+#                     ann["category_id"],  # 1
+#                     (x + w / 2) / img_width,  # 2
+#                     (y + h / 2) / img_height,  # 3
+#                     w / img_width,  # 4
+#                     h / img_height,  # 5
+#                     img_height,  # 6
+#                     img_width  # 7
+#                 ]
+#
+#                 fp.write(" ".join(map(str, label)) + "\n")
+#
+# # label_image(9, "train2017")
 
-    with open(anno_path, "r") as f:
-        annotations = json.load(f)
 
-        # Get image dimensions
-        image_info = next(i for i in annotations["images"] if i["id"] == image_id)
-        img_width, img_height = image_info["width"], image_info["height"]
-
-        # Create label file
-        str_im_id = str(image_id)
-        label_path = f"labels/train/{str_im_id.zfill(12)}.txt" # TODO: make this automated
-
-        with open(label_path, "w") as fp:
-            for ann in annotations["annotations"]:
-                if ann["image_id"] != image_id or ann["category_id"] > category_lim:
-                    continue
-
-                # Original COCO bbox format
-                x, y, w, h = ann["bbox"]
-
-                # Create 8-value label
-                label = [
-                    image_id,  # 0
-                    ann["category_id"],  # 1
-                    (x + w / 2) / img_width,  # 2
-                    (y + h / 2) / img_height,  # 3
-                    w / img_width,  # 4
-                    h / img_height,  # 5
-                    img_height,  # 6
-                    img_width  # 7
-                ]
-
-                fp.write(" ".join(map(str, label)) + "\n")
-
-# label_image(9, "train2017")
-imgs = os.listdir("images/train")
-with open("data/COCO2017/5k.txt", "w") as f:
-    for img in imgs:
-        print(img)
-        name = img.replace(".jpg", "")
-        num = int(name)
-        label_image_training(num, "train2017", 80)
-        f.write("images/train/" + img + "\n")
-
-def label_image_con(valtrain):
+def label_image_con(valtrain): # remember only either "valid" or "train"
     def label_image(image_id, annotation_name, category_lim):
 
         anno_path = f"annotations_trainval2017/annotations/instances_{annotation_name}.json"
@@ -159,7 +152,7 @@ def label_image_con(valtrain):
 
             # Create label file
             str_im_id = str(image_id)
-            label_path = f"labels/train/{str_im_id.zfill(12)}.txt"  # TODO: make this automated
+            label_path = f"labels/{valtrain}/{str_im_id.zfill(12)}.txt"  # TODO: make this automated
 
             with open(label_path, "w") as fp:
                 for ann in annotations["annotations"]:
@@ -181,6 +174,34 @@ def label_image_con(valtrain):
                             img_width  # 7
                         ]
                     elif valtrain == "valid":
-
+                        label = [
+                            ann["category_id"],  # 0
+                            (x + w / 2) / img_width,  # 1
+                            (y + h / 2) / img_height,  # 2
+                            w / img_width,  # 3
+                            h / img_height,  # 4
+                        ]
 
                     fp.write(" ".join(map(str, label)) + "\n")
+    return label_image
+
+train_label = label_image_con("train")
+val_label = label_image_con("valid")
+
+imgs = os.listdir("images/train")
+with open("data/COCO2017/5k.txt", "w") as f:
+    for img in imgs:
+        print(img)
+        name = img.replace(".jpg", "")
+        num = int(name)
+        train_label(num, "train2017", 80)
+        f.write("images/train/" + img + "\n")
+
+imgs = os.listdir("images/valid")
+with open("data/COCO2017/trainvalno5k.txt", "w") as f:
+    for img in imgs:
+        print(img)
+        name = img.replace(".jpg", "")
+        num = int(name)
+        val_label(num, "val2017", 80)
+        f.write("images/train/" + img + "\n")
