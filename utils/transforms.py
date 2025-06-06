@@ -87,12 +87,11 @@ class ImgAug(object):
             boxes = boxes.reshape(1, -1)
         print("ia meta pre", boxes)
         # Extract metadata
-        image_ids = boxes[:, 0].copy()  # 0: image_id
-        category_ids = boxes[:, 1].copy()  # 1: category_id
-        orig_sizes = boxes[:, 6:8].copy()  # 6-7: orig_height, orig_width
-
-        # Extract bbox values (columns 2-5)
-        bbox_values = boxes[:, 2:6].copy()
+        # image_ids = boxes[:, 0].copy()  # 0: image_id
+        category_ids = boxes[:, 0].copy()  # 0: category_id
+        # orig_sizes = boxes[:, 5:7].copy()  # 6-7: orig_height, orig_width
+        # Extract bbox values (columns 1-5)
+        bbox_values = boxes[:, 1:6].copy()
 
         # Convert to xyxy format for augmentation
         bbox_values_xyxy = xywh2xyxy_np(bbox_values)
@@ -130,19 +129,19 @@ class ImgAug(object):
             # print(new_boxes)
             bbox_values = np.array(new_boxes)
             print("ia bbox", bbox_values.shape)
-            print("ia ii", image_ids.shape)
+            # print("ia ii", image_ids.shape)
             print("ia ci", category_ids.shape)
-            print("ia orig", orig_sizes.shape)
+            # print("ia orig", orig_sizes.shape)
             # Reconstruct full 8-value format
             boxes = np.column_stack([
-                image_ids[kept_indices],  # Filtered metadata
+                # image_ids[kept_indices],  # Filtered metadata
                 category_ids[kept_indices],
                 bbox_values,
-                orig_sizes[kept_indices]
+                # orig_sizes[kept_indices]
             ])
             print("ia box", boxes)
         else:
-            boxes = np.zeros((0, 8))
+            boxes = np.zeros((0, 5))
         print("ia success", end="", flush=True)
         return img, boxes
 
@@ -193,8 +192,8 @@ class AbsoluteLabels(object):
         print("copy")
 
         # Only convert bbox values (columns 2-5)
-        boxes[:, [2, 4]] *= w  # x_center and width
-        boxes[:, [3, 5]] *= h  # y_center and height
+        boxes[:, [1, 3]] *= w  # x_center and width
+        boxes[:, [2, 4]] *= h  # y_center and height
         print("transformed")
         return img, boxes
 
@@ -210,8 +209,8 @@ class RelativeLabels(object):
         boxes = boxes.copy()
 
         # Only convert bbox values (columns 2-5)
-        boxes[:, [2, 4]] /= w  # x_center and width
-        boxes[:, [3, 5]] /= h  # y_center and height
+        boxes[:, [1, 3]] /= w  # x_center and width
+        boxes[:, [2, 4]] /= h  # y_center and height
         return img, boxes
 
 
@@ -258,7 +257,7 @@ class PadSquare(ImgAug):
             # ])
             print("ps recon", end="", flush=True)
         else:
-            boxes = np.zeros((0, 8))
+            boxes = np.zeros((0, 5))
         print("ps success", end="", flush=True)
         return img, boxes
 
@@ -294,7 +293,8 @@ class Resize(object):
     def __init__(self, size):
         self.size = size
 
-    def __call__(self, img, boxes):
+    def __call__(self, data):
+        img, boxes = data
         img = F.interpolate(img.unsqueeze(0), size=self.size, mode="nearest").squeeze(0)
         return img, boxes
 

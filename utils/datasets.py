@@ -106,7 +106,7 @@ class ListDataset(Dataset):
             print(f"Labels loaded for {img_path}: {boxes.shape}")
         else:
             print(f"No labels found for {img_path}")
-            boxes = np.zeros((0, 8))  # No labels available
+            boxes = np.zeros((0, 5))  # No labels available
         # except Exception:
         #     print(f"Could not read label '{label_path}'.")
         #     return
@@ -118,11 +118,11 @@ class ListDataset(Dataset):
         #TODO: Here is the critical kicker, the transforms expect around 8 columns but we only give them 5!!!
         # label files seem roughly in the format: image_id, category_id, x_center, y_center, width, height, orig_height, orig_width
         if self.transform:
-            try:
-                img, bb_targets = self.transform((img, boxes))
-            except Exception as e:
-                print(f"Could not apply transform for {img_path} due to {e}.")
-                return
+            # try:
+            img, bb_targets = self.transform((img, boxes))
+            # except Exception as e:
+            #     print(f"Could not apply transform for {img_path} due to {e}.")
+            #     return
 
         return img_path, img, bb_targets
 
