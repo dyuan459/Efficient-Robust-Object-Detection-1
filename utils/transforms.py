@@ -87,11 +87,11 @@ class ImgAug(object):
             boxes = boxes.reshape(1, -1)
         print("ia meta pre", boxes)
         # Extract metadata
-        # image_ids = boxes[:, 0].copy()  # 0: image_id
-        category_ids = boxes[:, 0].copy()  # 0: category_id
+        image_ids = boxes[:, 0].copy()  # 0: image_id
+        category_ids = boxes[:, 0].copy()  # 1: category_id
         # orig_sizes = boxes[:, 5:7].copy()  # 6-7: orig_height, orig_width
-        # Extract bbox values (columns 1-5)
-        bbox_values = boxes[:, 1:6].copy()
+        # Extract bbox values (columns 2-6)
+        bbox_values = boxes[:, 2:7].copy()
 
         # Convert to xyxy format for augmentation
         bbox_values_xyxy = xywh2xyxy_np(bbox_values)
@@ -134,14 +134,14 @@ class ImgAug(object):
             # print("ia orig", orig_sizes.shape)
             # Reconstruct full 8-value format
             boxes = np.column_stack([
-                # image_ids[kept_indices],  # Filtered metadata
+                image_ids[kept_indices],  # Filtered metadata
                 category_ids[kept_indices],
                 bbox_values,
                 # orig_sizes[kept_indices]
             ])
             print("ia box", boxes)
         else:
-            boxes = np.zeros((0, 5))
+            boxes = np.zeros((0, 6))
         print("ia success", end="", flush=True)
         return img, boxes
 
@@ -192,8 +192,8 @@ class AbsoluteLabels(object):
         print("copy")
 
         # Only convert bbox values (columns 2-5)
-        boxes[:, [1, 3]] *= w  # x_center and width
-        boxes[:, [2, 4]] *= h  # y_center and height
+        boxes[:, [2, 4]] *= w  # x_center and width
+        boxes[:, [3, 5]] *= h  # y_center and height
         print("transformed")
         return img, boxes
 
@@ -257,7 +257,7 @@ class PadSquare(ImgAug):
             # ])
             print("ps recon", end="", flush=True)
         else:
-            boxes = np.zeros((0, 5))
+            boxes = np.zeros((0, 6))
         print("ps success", end="", flush=True)
         return img, boxes
 
@@ -269,8 +269,9 @@ class ToTensor(object):
     def __call__(self, data):
         img, boxes = data
         img = transforms.ToTensor()(img)
-        boxes = boxes[:, 0:6]
+        boxes = boxes[:, 0:7]
         boxes = torch.tensor(boxes)
+        print("boxes shape",boxes.shape)
         return img, boxes
 
 # class ToTensor(object):
@@ -314,7 +315,10 @@ class ImgAugEval(object):
 
         # Convert bounding boxes to imgaug
         bounding_boxes = BoundingBoxesOnImage(
-            [BoundingBox(*box[1:], label=box[0]) for box in boxes],
+            # [BoundingBox(*box[1:], label=box[0])
+            #  for box in boxes],
+            [BoundingBox(label=box[0],x1=box[1],y1=box[2],x2=box[3],y2=box[4])
+             for box in boxes],
             shape=img.shape)
 
         # Apply augmentations
@@ -387,8 +391,10 @@ class PadSquareEval(ImgAugEval):
         ]))
 
     def __call__(self, data):
+        img, bbox_values = data
+        print(f"pse Pre-transform {bbox_values}", end="", flush=True)
         img, bbox_values = super().__call__(data)
-        print("ps Pre-transform", end="", flush=True)
+        print(f"pse post-transform {bbox_values}", end="", flush=True)
         return img, bbox_values
 
 
@@ -401,8 +407,9 @@ class ToTensorEval(object):
         # Extract image as PyTorch tensor
         img = transforms.ToTensor()(img)
 
-        bb_targets = torch.zeros((len(boxes), 6))
-        bb_targets[:, 1:] = transforms.ToTensor()(boxes)
+        # bb_targets = torch.zeros((len(boxes), 6))
+        # bb_targets[:, 1:] = transforms.ToTensor()(boxes)
+        bb_targets = torch.as_tensor(boxes, dtype=torch.float32)
 
         return img, bb_targets
 

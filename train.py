@@ -290,6 +290,7 @@ def run():
             # With tuple unpacking guard:
             if metrics_output is not None and len(metrics_output) == 5:
                 precision, recall, AP, f1, ap_class = metrics_output
+                print(metrics_output)
             #################################
                 evaluation_metrics = [
                     ("validation/precision", precision.mean()),

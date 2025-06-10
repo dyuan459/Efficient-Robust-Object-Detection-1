@@ -16,7 +16,7 @@ from torch.autograd import Variable
 
 from models.YOLOv3 import load_model
 from utils.utils import load_classes, ap_per_class, get_batch_statistics, non_max_suppression, to_cpu, xywh2xyxy, print_environment_info
-from utils.datasets import ListDataset
+from utils.datasets import ListDataset, ValidDataset
 from utils.transforms import DEFAULT_TRANSFORMS
 from utils.parse_config import parse_data_config
 
@@ -109,8 +109,8 @@ def _evaluate(model, dataloader, class_names, img_size, iou_thres, conf_thres, n
         # Extract labels
         labels += targets[:, 1].tolist()
         # Rescale target
-        targets[:, 2:] = xywh2xyxy(targets[:, 2:])
-        targets[:, 2:] *= img_size
+        targets[:, 1:5] = xywh2xyxy(targets[:, 1:5]) # just a guess but it should go category, center x, center y, height, width, anchor?
+        targets[:, 1:5] *= img_size
 
         imgs = Variable(imgs.type(Tensor), requires_grad=False)
 
@@ -150,7 +150,7 @@ def _create_validation_data_loader(img_path, batch_size, img_size, n_cpu):
     :return: Returns DataLoader
     :rtype: DataLoader
     """
-    dataset = ListDataset(img_path, img_size=img_size, multiscale=False, transform=DEFAULT_TRANSFORMS)
+    dataset = ValidDataset(img_path, img_size=img_size, multiscale=False, transform=DEFAULT_TRANSFORMS)
     dataloader = DataLoader(
         dataset,
         batch_size=batch_size,

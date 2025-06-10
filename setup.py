@@ -162,9 +162,9 @@ def label_image_con(valtrain): # remember only either "valid" or "train"
                     # Original COCO bbox format
                     x, y, w, h = ann["bbox"]
                     if valtrain == "train":
-                        # Create 5-value label
+                        # Create 6-value label
                         label = [
-                            # image_id,  # 0
+                            image_id,  # 0
                             ann["category_id"],  # 1
                             (x + w / 2) / img_width,  # 2
                             (y + h / 2) / img_height,  # 3
