@@ -85,7 +85,7 @@ class ImgAug(object):
         # Handle single box case
         if boxes.ndim == 1:
             boxes = boxes.reshape(1, -1)
-        print("ia meta pre", boxes)
+        #print("ia meta pre", boxes)
         # Extract metadata
         image_ids = boxes[:, 0].copy()  # 0: image_id
         category_ids = boxes[:, 0].copy()  # 1: category_id
@@ -95,23 +95,23 @@ class ImgAug(object):
 
         # Convert to xyxy format for augmentation
         bbox_values_xyxy = xywh2xyxy_np(bbox_values)
-        print("ia bboxes")
+        #print("ia bboxes")
         # Create bounding boxes
         bounding_boxes = BoundingBoxesOnImage(
             [BoundingBox(x1=box[0], y1=box[1], x2=box[2], y2=box[3])
              for box in bbox_values_xyxy],
             shape=img.shape
         )
-        print("ia aug")
+        #print("ia aug")
         # Apply augmentations
         img, bounding_boxes = self.augmentations(
             image=img,
             bounding_boxes=bounding_boxes
         )
-        print("ia aug done")
+        #print("ia aug done")
         # Clip boxes
         bounding_boxes = bounding_boxes.clip_out_of_image()
-        print("ia conversion")
+        #print("ia conversion")
         # Convert back to xywh format
         new_boxes = []
         kept_indices = []
@@ -123,14 +123,14 @@ class ImgAug(object):
                 height = box.y2 - box.y1
                 new_boxes.append([x_center, y_center, width, height])
                 kept_indices.append(i)
-        print("ia meta combine")
+        #print("ia meta combine")
         # Recombine with metadata
         if new_boxes:
             # print(new_boxes)
             bbox_values = np.array(new_boxes)
-            print("ia bbox", bbox_values.shape)
+            #print("ia bbox", bbox_values.shape)
             # print("ia ii", image_ids.shape)
-            print("ia ci", category_ids.shape)
+            #print("ia ci", category_ids.shape)
             # print("ia orig", orig_sizes.shape)
             # Reconstruct full 8-value format
             boxes = np.column_stack([
@@ -139,10 +139,10 @@ class ImgAug(object):
                 bbox_values,
                 # orig_sizes[kept_indices]
             ])
-            print("ia box", boxes)
+            #print("ia box", boxes)
         else:
             boxes = np.zeros((0, 6))
-        print("ia success", end="", flush=True)
+        #print("ia success", end="", flush=True)
         return img, boxes
 
 
@@ -182,26 +182,26 @@ class ImgAug(object):
 class AbsoluteLabels(object):
     def __call__(self, data):
         img, boxes = data
-        print(f"al Pre-transform: {boxes[0] if boxes.size > 0 else 'empty'}")
+        #print(f"al Pre-transform: {boxes[0] if boxes.size > 0 else 'empty'}")
         if boxes.size == 0:
             return img, boxes
 
         h, w, _ = img.shape  # Image is (H, W, C) numpy array
-        print("shape")
+        #print("shape")
         boxes = boxes.copy()
-        print("copy")
+        #print("copy")
 
         # Only convert bbox values (columns 2-5)
         boxes[:, [2, 4]] *= w  # x_center and width
         boxes[:, [3, 5]] *= h  # y_center and height
-        print("transformed")
+        #print("transformed")
         return img, boxes
 
 
 class RelativeLabels(object):
     def __call__(self, data):
         img, boxes = data
-        print(f"Pre-transform: {boxes[0] if boxes.size > 0 else 'empty'}")
+        #print(f"Pre-transform: {boxes[0] if boxes.size > 0 else 'empty'}")
         if boxes.size == 0:
             return img, boxes
 
@@ -224,15 +224,15 @@ class RelativeLabels(object):
 
 class PadSquare(ImgAug):
     def __init__(self):
-        print("ps")
+        #print("ps")
         super().__init__(iaa.Sequential([
             iaa.PadToAspectRatio(1.0, position="center-center").to_deterministic()
         ]))
-        print("ps done")
+        #print("ps done")
 
     def __call__(self, data):
         img, boxes = data
-        print(f"ps Pre-transform: {boxes[0] if boxes.size > 0 else 'empty'}", end="", flush=True)
+        #print(f"ps Pre-transform: {boxes[0] if boxes.size > 0 else 'empty'}", end="", flush=True)
         # if boxes.size > 0:
         #     # Save metadata
         #     metadata = boxes[:, :6].copy()  # First 6 columns
@@ -246,7 +246,7 @@ class PadSquare(ImgAug):
 
         # Apply padding to image and bbox_values only
         img, bbox_values = super().__call__((img, boxes))
-        print("ps super", end="", flush=True)
+        #print("ps super", end="", flush=True)
         # Reconstruct full boxes
         if bbox_values.size > 0:
             # boxes = np.hstack([
@@ -258,7 +258,7 @@ class PadSquare(ImgAug):
             print("ps recon", end="", flush=True)
         else:
             boxes = np.zeros((0, 6))
-        print("ps success", end="", flush=True)
+        #print("ps success", end="", flush=True)
         return img, boxes
 
 
@@ -271,7 +271,7 @@ class ToTensor(object):
         img = transforms.ToTensor()(img)
         boxes = boxes[:, 0:7]
         boxes = torch.tensor(boxes)
-        print("boxes shape",boxes.shape)
+        #print("boxes shape",boxes.shape)
         return img, boxes
 
 # class ToTensor(object):
@@ -392,9 +392,9 @@ class PadSquareEval(ImgAugEval):
 
     def __call__(self, data):
         img, bbox_values = data
-        print(f"pse Pre-transform {bbox_values}", end="", flush=True)
+        #print(f"pse Pre-transform {bbox_values}", end="", flush=True)
         img, bbox_values = super().__call__(data)
-        print(f"pse post-transform {bbox_values}", end="", flush=True)
+        #print(f"pse post-transform {bbox_values}", end="", flush=True)
         return img, bbox_values
 
 
