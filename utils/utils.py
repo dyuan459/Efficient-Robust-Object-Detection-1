@@ -189,6 +189,8 @@ def compute_ap(recall, precision):
 def get_batch_statistics(outputs, targets, iou_threshold):
     """ Compute true positives, predicted scores and predicted labels per sample """
     batch_metrics = []
+    print("outputs",outputs)
+    print("targets",targets)
     for sample_i in range(len(outputs)):
 
         if outputs[sample_i] is None:
@@ -202,7 +204,8 @@ def get_batch_statistics(outputs, targets, iou_threshold):
         true_positives = np.zeros(pred_boxes.shape[0])
 
         annotations = targets[targets[:, 0] == sample_i][:, 1:]
-        target_labels = annotations[:, 0] if len(annotations) else []
+        print(annotations)
+        target_labels = annotations[:, 0] if len(annotations) else [] # so you expect 6 value tensors in targets?
         if len(annotations):
             detected_boxes = []
             target_boxes = annotations[:, 1:]
@@ -220,6 +223,8 @@ def get_batch_statistics(outputs, targets, iou_threshold):
                 # Filter target_boxes by pred_label so that we only match against boxes of our own label
                 filtered_target_position, filtered_targets = zip(*filter(lambda x: target_labels[x[0]] == pred_label, enumerate(target_boxes)))
                 print("pred box",pred_box, flush=True)
+
+                print("filtered targ", filtered_targets)
                 # Find the best matching target for our predicted box
                 iou, box_filtered_index = bbox_iou(pred_box.unsqueeze(0), torch.stack(filtered_targets)).max(0)
 
