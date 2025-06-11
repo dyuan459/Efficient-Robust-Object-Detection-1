@@ -107,7 +107,8 @@ def _evaluate(model, dataloader, class_names, img_size, iou_thres, conf_thres, n
     sample_metrics = []  # List of tuples (TP, confs, pred)
     for _, imgs, targets in tqdm.tqdm(dataloader, desc="Validating"):
         # Extract labels
-        labels += targets[:, 1].tolist()
+        print("initial targets", targets[0])
+        labels += targets[:, 1].tolist() # from the validation you're still expecting label to be in index 1?
         # Rescale target
         targets[:, 1:5] = xywh2xyxy(targets[:, 1:5]) # just a guess but it should go category, center x, center y, height, width, anchor?
         targets[:, 1:5] *= img_size
@@ -118,7 +119,7 @@ def _evaluate(model, dataloader, class_names, img_size, iou_thres, conf_thres, n
             outputs = model(imgs)
             outputs = non_max_suppression(outputs, conf_thres=conf_thres, iou_thres=nms_thres)
         print(outputs)
-        print(type(targets))
+        print("first targets",targets[0])
         sample_metrics += get_batch_statistics(outputs, targets, iou_threshold=iou_thres)
 
     if len(sample_metrics) == 0:  # No detections over whole validation set.

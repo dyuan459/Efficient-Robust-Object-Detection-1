@@ -200,9 +200,11 @@ def get_batch_statistics(outputs, targets, iou_threshold):
         pred_labels = output[:, -1]
 
         true_positives = np.zeros(pred_boxes.shape[0])
-
+        print("targets",targets[targets[:, 0] == sample_i])
         annotations = targets[targets[:, 0] == sample_i][:, 1:]
+        print("annotations",annotations)
         target_labels = annotations[:, 0] if len(annotations) else []
+        print("target_labels",target_labels)
         if len(annotations):
             detected_boxes = []
             target_boxes = annotations[:, 1:]
