@@ -70,9 +70,11 @@ def compute_loss(predictions, targets, model):
         pos_weight=torch.tensor([1.0], device=device))
     BCEobj = nn.BCEWithLogitsLoss(
         pos_weight=torch.tensor([1.0], device=device))
-
+    # print("predictions",predictions[0])
     # Calculate losses for each yolo layer
     for layer_index, layer_predictions in enumerate(predictions):
+        print("layer",layer_index)
+        print("layer pred",layer_predictions[0])
         # Get image ids, anchors, grid index i and j for each target in the current yolo layer
         b, anchor, grid_j, grid_i = indices[layer_index]
         # Build empty object target tensor with the same shape as the object prediction
@@ -146,22 +148,27 @@ def build_targets(p, targets, model):
         print("gain",gain.shape,flush=True)
         # Scale targets by the number of yolo layer cells, they are now in the yolo cell coordinate system
         t = targets * gain # t is targets in yolo coordinates (img id, class, x, y, w, h, anchor id)
-        
+        print("first t",t)
         # Check if we have targets
         if nt:
-            # Calculate ration between anchor and target box for both width and height
+            # Calculate ratio between anchor and target box for both width and height
             r = t[:, :, 4:6] / anchors[:, None]
+            print("r moment",r)
             # Select the ratios that have the highest divergence in any axis and check if the ratio is less than 4
             j = torch.max(r, 1. / r).max(2)[0] < 4  # compare #TODO
+            # j = torch.max(r, 1. / r).max(2)[0] < 10  # compare #TODO
             # Only use targets that have the correct ratios for their anchors
             # That means we only keep ones that have a matching anchor and we loose the anchor dimension
             # The anchor id is still saved in the 7th value of each target
             t = t[j]
+            print("if statement")
         else:
+            print("else statements")
             t = targets[0]
 
         # Extract image id in batch and class id
         b, c = t[:, :2].long().T
+        print("T momentt", t[:, :2].long().T)
         # We isolate the target cell associations.
         # x, y, w, h are allready in the cell coordinate system meaning an x = 1.2 would be 1.2 times cellwidth
         gxy = t[:, 2:4]
@@ -181,6 +188,7 @@ def build_targets(p, targets, model):
         # Add correct anchor for each target to the list
         anch.append(anchors[a])
         # Add class for each target to the list
+        print("class",c)
         tcls.append(c)
 
     return tcls, tbox, indices, anch
