@@ -107,7 +107,9 @@ def _evaluate(model, dataloader, class_names, img_size, iou_thres, conf_thres, n
     sample_metrics = []  # List of tuples (TP, confs, pred)
     for _, imgs, targets in tqdm.tqdm(dataloader, desc="Validating"):
         # Extract labels
+        print("target before",targets[0])
         labels += targets[:, 1].tolist()
+        print("target after",targets[0])
         # Rescale target
         targets[:, 1:5] = xywh2xyxy(targets[:, 1:5]) # just a guess but it should go category, center x, center y, height, width, anchor?
         targets[:, 1:5] *= img_size

@@ -404,13 +404,14 @@ class ToTensorEval(object):
 
     def __call__(self, data):
         img, boxes = data
+        print(f"totensor Pre-transform {boxes}", end="", flush=True)
         # Extract image as PyTorch tensor
         img = transforms.ToTensor()(img)
 
         # bb_targets = torch.zeros((len(boxes), 6))
         # bb_targets[:, 1:] = transforms.ToTensor()(boxes)
         bb_targets = torch.as_tensor(boxes, dtype=torch.float32)
-
+        print(f"totensor post-transform {bb_targets}", end="", flush=True)
         return img, bb_targets
 
 
