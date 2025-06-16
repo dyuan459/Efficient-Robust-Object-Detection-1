@@ -160,6 +160,8 @@ def build_targets(p, targets, model):
             # Only use targets that have the correct ratios for their anchors
             # That means we only keep ones that have a matching anchor and we loose the anchor dimension
             # The anchor id is still saved in the 7th value of each target
+            print("this is j",j)
+            print("", torch.max(r, 1. / r).max(2)[0])
             t = t[j]
             print("if statement")
         else:
