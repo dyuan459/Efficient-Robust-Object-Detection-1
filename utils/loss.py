@@ -155,13 +155,14 @@ def build_targets(p, targets, model):
             r = t[:, :, 4:6] / anchors[:, None]
             print("r moment",r)
             # Select the ratios that have the highest divergence in any axis and check if the ratio is less than 4
-            j = torch.max(r, 1. / r).max(2)[0] < 4  # compare #TODO
+            j = torch.max(r, 1. / r).max(2)[0] < 4000  # compare #TODO
             # j = torch.max(r, 1. / r).max(2)[0] < 10  # compare #TODO
             # Only use targets that have the correct ratios for their anchors
             # That means we only keep ones that have a matching anchor and we loose the anchor dimension
             # The anchor id is still saved in the 7th value of each target
             print("this is j",j)
-            print("", torch.max(r, 1. / r).max(2)[0])
+            print("test maxxing", torch.max(r, 1. / r)[0])
+            print("test 2", torch.max(r, 1. / r).max(2)[0])
             t = t[j]
             print("if statement")
         else:
