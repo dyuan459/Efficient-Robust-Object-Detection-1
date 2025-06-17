@@ -144,8 +144,9 @@ def build_targets(p, targets, model):
         # Add the number of yolo cells in this layer the gain tensor
         # The gain tensor matches the columns of our targets (img id, class, x, y, w, h, anchor id)
         gain[2:6] = torch.tensor(p[i].shape)[[3, 2, 3, 2]]  # xyxy gain
+        print("p shape",p[i].shape)
         print("targets",targets.shape,flush=True)
-        print("gain",gain.shape,flush=True)
+        print("gain",gain,flush=True)
         # Scale targets by the number of yolo layer cells, they are now in the yolo cell coordinate system
         t = targets * gain # t is targets in yolo coordinates (img id, class, x, y, w, h, anchor id)
         print("first t",t)
@@ -154,6 +155,8 @@ def build_targets(p, targets, model):
             # Calculate ratio between anchor and target box for both width and height
             r = t[:, :, 4:6] / anchors[:, None]
             print("r moment",r)
+            print("target box?",t[:,:,4:6])
+            print("anchors",anchors)
             # Select the ratios that have the highest divergence in any axis and check if the ratio is less than 4
             j = torch.max(r, 1. / r).max(2)[0] < 4000  # compare #TODO
             # j = torch.max(r, 1. / r).max(2)[0] < 10  # compare #TODO
