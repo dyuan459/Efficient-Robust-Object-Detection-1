@@ -158,8 +158,20 @@ def build_targets(p, targets, model):
             print("target box?",t[:,:,4:6])
             print("anchors",anchors)
             # Select the ratios that have the highest divergence in any axis and check if the ratio is less than 4
-            j = torch.max(r, 1. / r).max(2)[0] < 4000  # compare #TODO
-            # j = torch.max(r, 1. / r).max(2)[0] < 10  # compare #TODO
+            # j = torch.max(r, 1. / r).max(2)[0] < 4000  # compare #TODO
+            if i == 0:  # Only print for first layer to avoid spam
+                print(f"\n=== Layer {i} Anchor Diagnosis ===")
+                print(f"Anchors (scaled): {anchors}")
+                print(f"Target box sizes (sample): {t[0, :5, 4:6]}")  # First 5 targets
+
+                max_ratios = torch.max(r, 1. / r).max(2)[0]
+                print(f"Max ratios range: {max_ratios.min():.2f} to {max_ratios.max():.2f}")
+
+                # Count matches for each anchor
+                for anchor_idx in range(3):
+                    anchor_matches = (max_ratios[anchor_idx] < 4).sum()
+                    print(f"Anchor {anchor_idx}: {anchor_matches}/{nt} targets match")
+            j = torch.max(r, 1. / r).max(2)[0] < 4  # compare #TODO
             # Only use targets that have the correct ratios for their anchors
             # That means we only keep ones that have a matching anchor and we loose the anchor dimension
             # The anchor id is still saved in the 7th value of each target

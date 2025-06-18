@@ -111,9 +111,9 @@ def _evaluate(model, dataloader, class_names, img_size, iou_thres, conf_thres, n
         labels += targets[:, 1].tolist()
         print("target after",targets[0])
         # Rescale target
-        targets[:, 1:5] = xywh2xyxy(targets[:, 1:5]) # just a guess but it should go category, center x, center y, height, width, anchor?
-        targets[:, 1:5] *= img_size
-
+        # targets[:, 1:5] = xywh2xyxy(targets[:, 1:5]) # just a guess but it should go category, center x, center y, height, width, anchor?
+        # targets[:, 1:5] *= img_size
+        # loss might actually expect normalized xywh?
         imgs = Variable(imgs.type(Tensor), requires_grad=False)
 
         with torch.no_grad():
