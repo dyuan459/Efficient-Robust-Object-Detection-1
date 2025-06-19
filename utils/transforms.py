@@ -74,10 +74,19 @@ import sys
 #             if boxes.shape[0] == 0: boxes = boxes[:, 0]
 #         return img, boxes
 class ImgAug(object):
+    """
+    The main purpose of this callable class is as a parent class to image augmentations. It simply has a certain set of
+    augmentations as a parameter and once called it takes out the data to be augmented, convert them to x1 x2 y1 y2 and
+    augments them.
+    """
+
     def __init__(self, augmentations):
         self.augmentations = augmentations
 
     def __call__(self, data):
+        """
+        takes out the data to be augmented, convert them to x1 x2 y1 y2 and augments them.
+        """
         img, boxes = data
         if boxes.size == 0:
             return img, boxes
@@ -180,6 +189,9 @@ class ImgAug(object):
 #         return img, boxes
 
 class AbsoluteLabels(object):
+    """
+    As it says on the tin, turns labels from relative to absolute coordinates assuming xywh format
+    """
     def __call__(self, data):
         img, boxes = data
         #print(f"al Pre-transform: {boxes[0] if boxes.size > 0 else 'empty'}")
@@ -199,6 +211,9 @@ class AbsoluteLabels(object):
 
 
 class RelativeLabels(object):
+    """
+    As it says on the tin, turns absolute labels into relative coordinates assuming xywh format
+    """
     def __call__(self, data):
         img, boxes = data
         #print(f"Pre-transform: {boxes[0] if boxes.size > 0 else 'empty'}")
@@ -223,6 +238,10 @@ class RelativeLabels(object):
 #         ])
 
 class PadSquare(ImgAug):
+    """
+    Essentially zooms into the center of the image until it becomes a square image. By default ImgAug call will also
+    cut out invalid bounding boxes
+    """
     def __init__(self):
         #print("ps")
         super().__init__(iaa.Sequential([

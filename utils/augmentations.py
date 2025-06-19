@@ -9,6 +9,9 @@ import torchvision.transforms as transforms
 
 
 class DefaultAug(ImgAug):
+    """
+    Essentially does various modifications to an image.
+    """
     def __init__(self):
         print("in DefaultAug")
         super().__init__(iaa.Sequential([
@@ -30,7 +33,7 @@ class DefaultAug(ImgAug):
         return img, boxes
 
 
-class StrongAug(ImgAug):
+class StrongAug(ImgAug): # unused
     def __init__(self, ):
         self.augmentations = iaa.Sequential([
             iaa.Dropout([0.0, 0.01]),
@@ -41,7 +44,7 @@ class StrongAug(ImgAug):
             iaa.Fliplr(0.5),
         ])
 
-AUGMENTATION_TRANSFORMS = transforms.Compose([
+AUGMENTATION_TRANSFORMS = transforms.Compose([ # used to augment training
     AbsoluteLabels(),  # Converts normalized to absolute pixels
     DefaultAug(),  # Requires absolute coordinates, mixes up image properties for training
     PadSquare(),  # Requires absolute coordinates, zooms into center of image
@@ -50,7 +53,7 @@ AUGMENTATION_TRANSFORMS = transforms.Compose([
 ])
 
 
-class MyCompose(object):
+class MyCompose(object): # unused
     def __init__(self, transforms_):
         self.transforms = transforms_
 
