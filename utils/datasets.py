@@ -240,8 +240,8 @@ class ValidDataset(Dataset):
         imgs = torch.stack([resize(img, self.img_size) for img in imgs])
 
         # Add sample index to targets
-        for i, boxes in enumerate(bb_targets):
-            boxes[:, 0] = i
+        # for i, boxes in enumerate(bb_targets):
+        #     boxes[:, 0] = i
         bb_targets = torch.cat(bb_targets, 0)
 
         return paths, imgs, bb_targets
