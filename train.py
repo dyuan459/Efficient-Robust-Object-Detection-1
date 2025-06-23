@@ -165,10 +165,11 @@ def run():
         model.train()  # Set model to training mode
 
         for batch_i, (_, imgs, targets) in enumerate(tqdm.tqdm(dataloader, desc=f"Training Epoch {epoch}")):
+            print("targets original", targets)
             batches_done = len(dataloader) * epoch + batch_i
 
             imgs = imgs.to(device, non_blocking=True)
-            targets = targets.to(device)
+            targets = targets.to(device) # targets is a tensor, now we're sending it to device
 
             outputs = model(imgs)
 
