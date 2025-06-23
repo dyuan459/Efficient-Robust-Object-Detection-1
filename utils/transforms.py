@@ -224,8 +224,8 @@ class RelativeLabels(object):
         boxes = boxes.copy()
 
         # Only convert bbox values (columns 2-5)
-        boxes[:, [1, 3]] /= w  # x_center and width
-        boxes[:, [2, 4]] /= h  # y_center and height
+        boxes[:, [2, 4]] /= w  # x_center and width
+        boxes[:, [3, 5]] /= h  # y_center and height
         return img, boxes
 
 

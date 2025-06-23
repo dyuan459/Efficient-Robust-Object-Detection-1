@@ -56,6 +56,18 @@ def bbox_iou(box1, box2, x1y1x2y2=True, GIoU=False, DIoU=False, CIoU=False, eps=
 
 
 def compute_loss(predictions, targets, model):
+    # TODO: test confidence
+    for layer_index, layer_predictions in enumerate(predictions):
+        # Raw confidences (logits)
+        raw_conf = layer_predictions[..., 4]
+        # Apply sigmoid to get probabilities
+        conf_probs = torch.sigmoid(raw_conf)
+
+        print(f"Layer {layer_index}:")
+        print(f"  Raw confidence range: {raw_conf.min():.3f} to {raw_conf.max():.3f}")
+        print(f"  Sigmoid confidence range: {conf_probs.min():.3f} to {conf_probs.max():.3f}")
+        print(f"  Predictions above 0.5: {(conf_probs > 0.5).sum()}")
+        print(f"  Predictions above 0.1: {(conf_probs > 0.1).sum()}")
     # Check which device was used
     device = targets.device
 
@@ -128,6 +140,7 @@ def compute_loss(predictions, targets, model):
 
 
 def build_targets(p, targets, model):
+    # print("first targets", targets[0])
     # Build targets for compute_loss(), input targets(image,class,x,y,w,h)
     na, nt = 3, targets.shape[0]  # number of anchors (3), targets #TODO
     tcls, tbox, indices, anch = [], [], [], []
@@ -186,7 +199,11 @@ def build_targets(p, targets, model):
             t = targets[0]
 
         # Extract image id in batch and class id
-        b, c = t[:, :2].long().T
+        # b, c = t[:, :2].long().T # currently ths guy gets sample id and image id...
+
+        b = t[:, 0].long().T
+        c = t[:, 2].long().T
+
         print("T momentt", t[:, :2].long().T)
         # We isolate the target cell associations.
         # x, y, w, h are allready in the cell coordinate system meaning an x = 1.2 would be 1.2 times cellwidth

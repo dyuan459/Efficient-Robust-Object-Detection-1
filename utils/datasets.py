@@ -141,16 +141,18 @@ class ListDataset(Dataset):
 
         # Resize images to input shape
         imgs = torch.stack([resize(img, self.img_size) for img in imgs])
-        # print(f"look at bb_targ {bb_targets}")
+
         # Add sample index to targets
-        for i, boxes in enumerate(*bb_targets):
-            print(f"index {i}")
-            print(f"boxes {boxes}")
-            boxes[:, 0] = i
-
-
+        for i, boxes in enumerate(bb_targets):
+            # print(f"look at boxes {boxes.shape}")
+        #     print(f"index {i}")
+        #     print(f"boxes {boxes}")
+            boxes[:,0] = i
+        #
+        #
         bb_targets = torch.cat(bb_targets, 0)
-        # hm... so image id gets replaced with sample index?
+        # hm... so image id gets replaced with sample index? Isn't the image id already a sample index?
+        # okay so sample index will be important later
 
         return paths, imgs, bb_targets
 
