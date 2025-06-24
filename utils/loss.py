@@ -199,7 +199,7 @@ def build_targets(p, targets, model):
             t = targets[0]
 
         # Extract image id in batch and class id
-        # b, c = t[:, :2].long().T # currently ths guy gets sample id and image id...
+        # b, c = t[:, :2].long().T # currently this guy gets sample id and image id...
 
         b = t[:, 0].long().T
         c = t[:, 2].long().T

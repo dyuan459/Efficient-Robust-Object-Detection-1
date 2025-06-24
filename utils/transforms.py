@@ -96,8 +96,8 @@ class ImgAug(object):
             boxes = boxes.reshape(1, -1)
         #print("ia meta pre", boxes)
         # Extract metadata
-        image_ids = boxes[:, 0].copy()  # 0: image_id
-        category_ids = boxes[:, 0].copy()  # 1: category_id
+        image_ids = boxes[:, 0].copy()  # 0: image_id/batch id
+        category_ids = boxes[:, 1].copy()  # 1: category_id
         # orig_sizes = boxes[:, 5:7].copy()  # 6-7: orig_height, orig_width
         # Extract bbox values (columns 2-6)
         bbox_values = boxes[:, 2:7].copy()
@@ -288,9 +288,11 @@ class ToTensor(object):
     def __call__(self, data):
         img, boxes = data
         img = transforms.ToTensor()(img)
-        boxes = boxes[:, 0:7]
+        print("box to tensor", boxes)
+        boxes = boxes[:, 0:7] # currently this guy has (sample id, image id, x, y, w, h)?
         boxes = torch.tensor(boxes)
         #print("boxes shape",boxes.shape)
+        print("box as tensor", boxes)
         return img, boxes
 
 # class ToTensor(object):
