@@ -208,8 +208,7 @@ def get_batch_statistics(outputs, targets, iou_threshold):
         target_labels = annotations[:, 0] if len(annotations) else [] # so you expect 6 value tensors in targets?
         if len(annotations):
             detected_boxes = []
-            # target_boxes = annotations[:, 1:]
-            target_boxes = annotations
+            target_boxes = annotations[:, 1:]
             for pred_i, (pred_box, pred_label) in enumerate(zip(pred_boxes, pred_labels)):
 
                 # If targets are found break
