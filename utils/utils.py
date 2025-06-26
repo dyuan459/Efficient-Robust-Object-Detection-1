@@ -190,6 +190,7 @@ def get_batch_statistics(outputs, targets, iou_threshold):
     """ Compute true positives, predicted scores and predicted labels per sample """
     batch_metrics = []
     print("outputs",outputs)
+    print("output length",len(outputs))
     print("targets",targets)
     for sample_i in range(len(outputs)):
 
@@ -203,9 +204,9 @@ def get_batch_statistics(outputs, targets, iou_threshold):
 
         true_positives = np.zeros(pred_boxes.shape[0])
 
-        annotations = targets[targets[:, 0] == sample_i][:, 1:]
-        print(annotations)
-        target_labels = annotations[:, 0] if len(annotations) else [] # so you expect 6 value tensors in targets?
+        annotations = targets[targets[:, 0] == sample_i][:, 1:] # filter for the parts of target that corresponds to this batch???
+        print("annotations", annotations)
+        target_labels = annotations[:, 0]  # Now class_id is at position 0
         if len(annotations):
             detected_boxes = []
             target_boxes = annotations[:, 1:]

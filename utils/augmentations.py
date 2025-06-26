@@ -13,7 +13,7 @@ class DefaultAug(ImgAug):
     Essentially does various modifications to an image.
     """
     def __init__(self):
-        print("in DefaultAug")
+        # print("in DefaultAug")
         super().__init__(iaa.Sequential([
             iaa.Sharpen((0.0, 0.1)),
             iaa.Affine(rotate=(-0, 0), translate_percent=(-0.1, 0.1), scale=(0.8, 1.5)),
@@ -21,15 +21,15 @@ class DefaultAug(ImgAug):
             iaa.AddToHue((-10, 10)),
             iaa.Fliplr(0.5),
         ]))
-        print("default aug done")
+        # print("default aug done")
 
     def __call__(self, data):
-        print("da call")
+        # print("da call")
         img, boxes = data
-        print(f"da Pre-transform: {boxes[0] if boxes.size > 0 else 'empty'}")
+        # print(f"da Pre-transform: {boxes[0] if boxes.size > 0 else 'empty'}")
 
         img, boxes = super().__call__(data)
-        print(f"da success {boxes[0] if boxes.size > 0 else 'empty'}")
+        # print(f"da success {boxes[0] if boxes.size > 0 else 'empty'}")
         return img, boxes
 
 

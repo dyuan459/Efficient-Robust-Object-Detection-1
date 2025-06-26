@@ -150,6 +150,16 @@ def build_targets(p, targets, model):
     # Copy target boxes anchor size times and append an anchor index to each copy the anchor index is also expressed by the new first dimension
     targets = torch.cat((targets.repeat(na, 1, 1), ai[:, :, None]), 2)
 
+    print("Target shape:", targets.shape)
+    print("First few targets:", targets[:3])
+    print("Target format should be: (image_id, class, x, y, w, h)")
+    try:
+        print("Target coordinates range:", targets[:, 2:6].min(), "to", targets[:, 2:6].max())
+    except:
+        print("no targets?")
+    # hm so nothing is being passed in?
+    print("Are coordinates normalized (0-1)?", (targets[:, 2:6] <= 1.0).all())
+
     for i, yolo_layer in enumerate(model.yolo_layers):
         # * COCO to yolo size
         # Scale anchors by the yolo grid cell size so that an anchor with the size of the cell would result in 1
@@ -158,12 +168,15 @@ def build_targets(p, targets, model):
         # Add the number of yolo cells in this layer the gain tensor
         # The gain tensor matches the columns of our targets (img id, class, x, y, w, h, anchor id)
         gain[2:6] = torch.tensor(p[i].shape)[[3, 2, 3, 2]]  # xyxy gain
-        print("p shape",p[i].shape)
-        print("targets",targets.shape,flush=True)
-        print("gain",gain,flush=True)
+        # print("p shape",p[i].shape)
+        # print("targets",targets.shape,flush=True)
+        # print("gain",gain,flush=True)
+
         # Scale targets by the number of yolo layer cells, they are now in the yolo cell coordinate system
         t = targets * gain # t is targets in yolo coordinates (img id, class, x, y, w, h, anchor id)
         print("first t",t)
+
+
         # Check if we have targets
         if nt:
             # Calculate ratio between anchor and target box for both width and height
@@ -186,23 +199,23 @@ def build_targets(p, targets, model):
                     anchor_matches = (max_ratios[anchor_idx] < 4).sum()
                     print(f"Anchor {anchor_idx}: {anchor_matches}/{nt} targets match")
             j = torch.max(r, 1. / r).max(2)[0] < 4  # compare #TODO
+            print(f"Targets matched in layer {i}: {j.sum()} out of {j.numel()}")
             # Only use targets that have the correct ratios for their anchors
             # That means we only keep ones that have a matching anchor and we loose the anchor dimension
             # The anchor id is still saved in the 7th value of each target
-            print("this is j",j)
-            print("test maxxing", torch.max(r, 1. / r)[0])
-            print("test 2", torch.max(r, 1. / r).max(2)[0])
+            # print("this is j",j)
+            # print("test maxxing", torch.max(r, 1. / r)[0])
+            # print("test 2", torch.max(r, 1. / r).max(2)[0])
             t = t[j]
-            print("if statement")
         else:
-            print("else statements")
             t = targets[0]
 
         # Extract image id in batch and class id
-        # b, c = t[:, :2].long().T # currently this guy gets sample id and image id...
-
-        b = t[:, 0].long().T
-        c = t[:, 2].long().T
+        b, c = t[:, :2].long().T # currently this guy gets sample id and image id...
+        # print("what is t", t[0])
+        # b = t[:, 0].long().T # batch id
+        # # 1 is
+        # c = t[:, 2].long().T # class id
 
         print("T momentt", t[:, :2].long().T)
         # We isolate the target cell associations.

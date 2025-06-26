@@ -1,6 +1,6 @@
 #! /usr/bin/env python3
 """
-Needs train to run first!
+Needs train to run first! But also includes validation methods
 """
 from __future__ import division
 
@@ -106,12 +106,13 @@ def _evaluate(model, dataloader, class_names, img_size, iou_thres, conf_thres, n
     labels = []
     sample_metrics = []  # List of tuples (TP, confs, pred)
     for _, imgs, targets in tqdm.tqdm(dataloader, desc="Validating"):
+        # the current targets format is (sample id, class id, rel x, rel y, rel w, rel h)
         # Extract labels
         print("target before",targets[0])
-        labels += targets[:, 0].tolist() # I think labels are at 0?
+        labels += targets[:, 1].tolist() # labels are at 1, sample id is at 0
         # Rescale target
-        targets[:, 1:5] = xywh2xyxy(targets[:, 1:5]) # just a guess but it should go category, center x, center y, height, width, anchor?
-        targets[:, 1:5] *= img_size
+        targets[:, 2:6] = xywh2xyxy(targets[:, 2:6]) # just a guess but it should go category, center x, center y, height, width, anchor?
+        targets[:, 2:6] *= img_size
         # loss might actually expect normalized xywh?
         imgs = Variable(imgs.type(Tensor), requires_grad=False)
 

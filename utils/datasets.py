@@ -189,12 +189,10 @@ class ValidDataset(Dataset):
         # ---------
         try:
             img_path = self.img_files[index % len(self.img_files)].rstrip()
-            print("rstripped",img_path,flush=True)
             img = np.array(Image.open(img_path).convert('RGB'), dtype=np.uint8)
         except Exception:
             print(f"Could not read image '{img_path}'.")
             return
-
         # ---------
         #  Label
         # ---------
@@ -230,6 +228,31 @@ class ValidDataset(Dataset):
 
         return img_path, img, bb_targets
 
+    # def collate_fn(self, batch):
+    #     self.batch_count += 1
+    #
+    #     # Drop invalid images
+    #     batch = [data for data in batch if data is not None]
+    #     paths, imgs, bb_targets = list(zip(*batch))
+    #
+    #     # Resize images to input shape
+    #     if self.multiscale and self.batch_count % 10 == 0:
+    #         self.img_size = random.choice(range(self.min_size, self.max_size + 1, 32))
+    #
+    #     imgs = torch.stack([resize(img, self.img_size) for img in imgs])
+    #
+    #     # Insert sample index as new first column
+    #     for i, boxes in enumerate(bb_targets):
+    #         if boxes.size(0) > 0:  # Only if there are boxes
+    #             # Create sample index column
+    #             sample_indices = torch.full((boxes.size(0), 1), i, dtype=boxes.dtype)
+    #             # Concatenate: [sample_index, original_data]
+    #             boxes = torch.cat([sample_indices, boxes], dim=1)
+    #             bb_targets[i] = boxes
+    #
+    #     bb_targets = torch.cat([b for b in bb_targets if b.size(0) > 0], 0)
+    #
+    #     return paths, imgs, bb_targets
     def collate_fn(self, batch):
         self.batch_count += 1
 
@@ -237,6 +260,8 @@ class ValidDataset(Dataset):
         batch = [data for data in batch if data is not None]
 
         paths, imgs, bb_targets = list(zip(*batch))
+
+        bb_targets = list(bb_targets)
 
         # Selects new image size every tenth batch
         if self.multiscale and self.batch_count % 10 == 0:
@@ -247,8 +272,13 @@ class ValidDataset(Dataset):
         imgs = torch.stack([resize(img, self.img_size) for img in imgs])
 
         # Add sample index to targets
-        # for i, boxes in enumerate(bb_targets):
-        #     boxes[:, 0] = i
+        for i, boxes in enumerate(bb_targets):
+            if boxes.size(0) > 0:  # Has boxes
+                sample_indices = torch.full((boxes.size(0), 1), i, dtype=boxes.dtype)
+                boxes = torch.cat([sample_indices, boxes], dim=1)
+            else:  # No boxes - create empty tensor with correct shape
+                boxes = torch.zeros((0, boxes.size(1) + 1), dtype=boxes.dtype)
+            bb_targets[i] = boxes
         bb_targets = torch.cat(bb_targets, 0)
 
         return paths, imgs, bb_targets
