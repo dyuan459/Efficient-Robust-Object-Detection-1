@@ -1,5 +1,5 @@
 # Efficient and Adversarially Robust Object Detection
-
+Warning: Checkpoints are ~240Mb per so 300 checkpoints would be 72Gb
 ## Usage
 python3.8 -m venv env or python -m venv env
 
