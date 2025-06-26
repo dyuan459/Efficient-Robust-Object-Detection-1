@@ -165,8 +165,7 @@ def run():
         model.train()  # Set model to training mode
 
         for batch_i, (_, imgs, targets) in enumerate(tqdm.tqdm(dataloader, desc=f"Training Epoch {epoch}")):
-            print("targets original", targets)
-            print(f"Image training value range: {imgs.min()} to {imgs.max()}")
+            # print(f"Image training value range: {imgs.min()} to {imgs.max()}")
             batches_done = len(dataloader) * epoch + batch_i
 
             imgs = imgs.to(device, non_blocking=True)

@@ -74,6 +74,8 @@ def print_eval_stats(metrics_output, class_names, verbose):
                 ap_table += [[c, class_names[c], "%.5f" % AP[i]]]
             print(AsciiTable(ap_table).table)
         print(f"---- mAP {AP.mean():.5f} ----")
+        with open("map.txt", "a") as f:
+            f.write(f"\n---- mAP {AP.mean():.5f} ----")
     else:
         print("---- mAP not measured (no detections found by model) ----")
 
@@ -108,7 +110,6 @@ def _evaluate(model, dataloader, class_names, img_size, iou_thres, conf_thres, n
     for _, imgs, targets in tqdm.tqdm(dataloader, desc="Validating"):
         # the current targets format is (sample id, class id, rel x, rel y, rel w, rel h)
         # Extract labels
-        print("target before",targets[0])
         labels += targets[:, 1].tolist() # labels are at 1, sample id is at 0
         # Rescale target
         targets[:, 2:6] = xywh2xyxy(targets[:, 2:6]) # just a guess but it should go category, center x, center y, height, width, anchor?

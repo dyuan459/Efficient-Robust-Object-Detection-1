@@ -85,8 +85,8 @@ def compute_loss(predictions, targets, model):
     # print("predictions",predictions[0])
     # Calculate losses for each yolo layer
     for layer_index, layer_predictions in enumerate(predictions):
-        print("layer",layer_index)
-        print("layer pred",layer_predictions[0])
+        # print("layer",layer_index)
+        # print("layer pred",layer_predictions[0])
         # Get image ids, anchors, grid index i and j for each target in the current yolo layer
         b, anchor, grid_j, grid_i = indices[layer_index]
         # Build empty object target tensor with the same shape as the object prediction
@@ -164,7 +164,7 @@ def build_targets(p, targets, model):
         # * COCO to yolo size
         # Scale anchors by the yolo grid cell size so that an anchor with the size of the cell would result in 1
         anchors = yolo_layer.anchors / yolo_layer.stride
-        print("anchors build targets",anchors)
+        # print("anchors build targets",anchors)
         # Add the number of yolo cells in this layer the gain tensor
         # The gain tensor matches the columns of our targets (img id, class, x, y, w, h, anchor id)
         gain[2:6] = torch.tensor(p[i].shape)[[3, 2, 3, 2]]  # xyxy gain
@@ -174,16 +174,13 @@ def build_targets(p, targets, model):
 
         # Scale targets by the number of yolo layer cells, they are now in the yolo cell coordinate system
         t = targets * gain # t is targets in yolo coordinates (img id, class, x, y, w, h, anchor id)
-        print("first t",t)
+        # print("first t",t)
 
 
         # Check if we have targets
         if nt:
             # Calculate ratio between anchor and target box for both width and height
             r = t[:, :, 4:6] / anchors[:, None]
-            print("r moment",r)
-            print("target box?",t[:,:,4:6])
-            print("anchors",anchors)
             # Select the ratios that have the highest divergence in any axis and check if the ratio is less than 4
             # j = torch.max(r, 1. / r).max(2)[0] < 4000  # compare #TODO
             if i == 0:  # Only print for first layer to avoid spam
@@ -216,8 +213,6 @@ def build_targets(p, targets, model):
         # b = t[:, 0].long().T # batch id
         # # 1 is
         # c = t[:, 2].long().T # class id
-
-        print("T momentt", t[:, :2].long().T)
         # We isolate the target cell associations.
         # x, y, w, h are allready in the cell coordinate system meaning an x = 1.2 would be 1.2 times cellwidth
         gxy = t[:, 2:4]

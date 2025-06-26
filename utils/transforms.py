@@ -288,11 +288,11 @@ class ToTensor(object):
     def __call__(self, data):
         img, boxes = data
         img = transforms.ToTensor()(img)
-        print("box to tensor", boxes)
+        # print("box to tensor", boxes)
         boxes = boxes[:, 0:7] # currently this guy has (sample id, image id, x, y, w, h)?
         boxes = torch.tensor(boxes)
         #print("boxes shape",boxes.shape)
-        print("box as tensor", boxes)
+        # print("box as tensor", boxes)
         return img, boxes
 
 # class ToTensor(object):
@@ -425,14 +425,14 @@ class ToTensorEval(object):
 
     def __call__(self, data):
         img, boxes = data
-        print(f"totensor Pre-transform {boxes}", end="", flush=True)
+        # print(f"totensor Pre-transform {boxes}", end="", flush=True)
         # Extract image as PyTorch tensor
         img = transforms.ToTensor()(img)
 
         # bb_targets = torch.zeros((len(boxes), 6))
         # bb_targets[:, 1:] = transforms.ToTensor()(boxes)
         bb_targets = torch.as_tensor(boxes, dtype=torch.float32)
-        print(f"totensor post-transform {bb_targets}", end="", flush=True)
+        # print(f"totensor post-transform {bb_targets}", end="", flush=True)
         return img, bb_targets
 
 
