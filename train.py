@@ -28,7 +28,7 @@ from torchsummary import summary
 import math
 
 def _create_data_loader(img_path, batch_size, img_size, n_cpu, multiscale_training=False):
-    """Creates a DataLoader for training.
+    """Creates a DataLoader for training using AUGMENTATION_TRANSFORMS.
 
     :param img_path: Path to file containing all paths to training images.
     :type img_path: str
@@ -64,12 +64,12 @@ def run():
     parser = argparse.ArgumentParser(description="Trains the YOLO model.")
     parser.add_argument("-m", "--model", type=str, default="config/yolov3.cfg", help="Path to model definition file (.cfg)")
     parser.add_argument("-d", "--data", type=str, default="config/coco.data", help="Path to data config file (.data)")
-    parser.add_argument("-e", "--epochs", type=int, default=300, help="Number of epochs")
+    parser.add_argument("-e", "--epochs", type=int, default=300, help="Number of epochs") # 300 epoch took around half an hour on T4 Google GPU
     parser.add_argument("-v", "--verbose", action='store_true', help="Makes the training more verbose")
-    parser.add_argument("--n_cpu", type=int, default=8, help="Number of cpu threads to use during batch generation")
+    parser.add_argument("--n_cpu", type=int, default=8, help="Number of cpu threads to use during batch generation") # can cause crashing on low end laptops
     parser.add_argument("--pretrained_weights", type=str, help="Path to checkpoint file (.weights or .pth). Starts training from checkpoint model")
-    parser.add_argument("--checkpoint_interval", type=int, default=5, help="Interval of epochs between saving model weights")
-    parser.add_argument("--evaluation_interval", type=int, default=5, help="Interval of epochs between evaluations on validation set")
+    parser.add_argument("--checkpoint_interval", type=int, default=5, help="Interval of epochs between saving model weights") # 300 checkpoints is around 72GB
+    parser.add_argument("--evaluation_interval", type=int, default=1, help="Interval of epochs between evaluations on validation set")
     parser.add_argument("--multiscale_training", action="store_true", help="Allow multi-scale training")
     parser.add_argument("--iou_thres", type=float, default=0.5, help="Evaluation: IOU threshold required to qualify as detected")
     parser.add_argument("--conf_thres", type=float, default=0.1, help="Evaluation: Object confidence threshold")
@@ -165,7 +165,7 @@ def run():
         model.train()  # Set model to training mode
 
         for batch_i, (_, imgs, targets) in enumerate(tqdm.tqdm(dataloader, desc=f"Training Epoch {epoch}")):
-            # print(f"Image training value range: {imgs.min()} to {imgs.max()}")
+            # print(f"Image training value range: {imgs.min()} to {imgs.max()}") # just checks if images aren't blank and if they're normalized
             batches_done = len(dataloader) * epoch + batch_i
 
             imgs = imgs.to(device, non_blocking=True)
@@ -173,7 +173,7 @@ def run():
 
             outputs = model(imgs)
 
-            loss, loss_components = compute_loss(outputs, targets, model) # output is y_pred, target is y
+            loss, loss_components = compute_loss(outputs, targets, model)
 
             loss.backward()
 
@@ -187,34 +187,34 @@ def run():
                 lr = model.hyperparams['learning_rate']
 
 
-                # if batches_done < model.hyperparams['burn_in']:
-                #     # Burn in
-                #     lr *= (batches_done / model.hyperparams['burn_in'])
-                #TODO: Explain exactly how this works:
-
-                # With absolute scaling:
                 if batches_done < model.hyperparams['burn_in']:
-                    # Burn in - absolute scaling from 0 to base LR
-                    lr = model.hyperparams['learning_rate'] * (batches_done / model.hyperparams['burn_in'])
+                    # Burn in
+                    lr *= (batches_done / model.hyperparams['burn_in'])
+                #
+
+                # # With absolute scaling:
+                # if batches_done < model.hyperparams['burn_in']:
+                #     # Burn in - absolute scaling from 0 to base LR
+                #     lr = model.hyperparams['learning_rate'] * (batches_done / model.hyperparams['burn_in'])
 
                 #####################################################
-                # else:
-                #     # Set and parse the learning rate to the steps defined in the cfg
-                #     for threshold, value in model.hyperparams['lr_steps']:
-                #         if batches_done > threshold:
-                #             lr *= value
-
-                #TODO: How to describe what this exactly does
                 else:
-                    # Sort learning rate steps by threshold
-                    if 'lr_steps' in model.hyperparams:
-                        lr_steps = sorted(
-                            model.hyperparams['lr_steps'],
-                            key=lambda x: x[0]  # Sort by threshold
-                        )
-                        for threshold, value in lr_steps:
-                            if batches_done > threshold:
-                                lr *= value
+                    # Set and parse the learning rate to the steps defined in the cfg
+                    for threshold, value in model.hyperparams['lr_steps']:
+                        if batches_done > threshold:
+                            lr *= value
+
+                #
+                # else:
+                #     # Sort learning rate steps by threshold
+                #     if 'lr_steps' in model.hyperparams:
+                #         lr_steps = sorted(
+                #             model.hyperparams['lr_steps'],
+                #             key=lambda x: x[0]  # Sort by threshold
+                #         )
+                #         for threshold, value in lr_steps:
+                #             if batches_done > threshold:
+                #                 lr *= value
                 ##################################################
 
                 # Log the learning rate
@@ -286,9 +286,7 @@ def run():
             # if metrics_output is not None:
             #     precision, recall, AP, f1, ap_class = metrics_output
 
-            #TODO: Understand exactly how to explain this:
-
-            # With tuple unpacking guard:
+            # With tuple unpacking guard, be slightly safer:
             if metrics_output is not None and len(metrics_output) == 5:
                 precision, recall, AP, f1, ap_class = metrics_output
                 print(metrics_output)
