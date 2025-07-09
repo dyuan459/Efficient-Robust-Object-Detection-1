@@ -144,6 +144,7 @@ def build_targets(p, targets, model):
     if targets.numel() > 0:
         print(f"First few raw targets: {targets[:5]}")
         print(f"Targets min/max: {targets.min():.3f}/{targets.max():.3f}")
+        print(f"Not normalized coords: {targets[:,2:6][targets[:,2:6] >1]}")
         print(f"Are coordinates normalized? {(targets[:, 2:6] >= 0).all() and (targets[:, 2:6] <= 1).all()}")
     else:
         print("WARNING: Targets tensor is completely empty!")
