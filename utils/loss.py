@@ -205,7 +205,7 @@ def build_targets(p, targets, model):
                 for anchor_idx in range(3):
                     anchor_matches = (max_ratios[anchor_idx] < 4).sum()
                     print(f"Anchor {anchor_idx}: {anchor_matches}/{nt} targets match")
-            j = torch.max(r, 1. / r).max(2)[0] < 2  # compare #TODO
+            j = torch.max(r, 1. / r).max(2)[0] < 4  # compare #TODO
             #! currently this allows for targets over 4 times larger to still work?
             print(f"Anchor ratios - min: {torch.max(r, 1. / r).min():.2f}, max: {torch.max(r, 1. / r).max():.2f}")
             print(f"Targets surviving anchor matching: {j.sum()}/{j.numel()}")
