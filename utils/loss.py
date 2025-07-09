@@ -95,6 +95,7 @@ def compute_loss(predictions, targets, model):
         # Each target is a label box with some scaling and the association of an anchor box.
         # Label boxes may be associated to 0 or multiple anchors. So they are multiple times or not at all in the targets.
         num_targets = b.shape[0]
+        print("there are {} targets".format(num_targets))
         # Check if there are targets for this batch
         if num_targets:
             # Load the corresponding values from the predictions for each of the targets
@@ -140,6 +141,13 @@ def compute_loss(predictions, targets, model):
 
 
 def build_targets(p, targets, model):
+    if targets.numel() > 0:
+        print(f"First few raw targets: {targets[:5]}")
+        print(f"Targets min/max: {targets.min():.3f}/{targets.max():.3f}")
+        print(f"Are coordinates normalized? {(targets[:, 2:6] >= 0).all() and (targets[:, 2:6] <= 1).all()}")
+    else:
+        print("WARNING: Targets tensor is completely empty!")
+        print("This batch contains no objects to detect.")
     # print("first targets", targets[0])
     # Build targets for compute_loss(), input targets(image,class,x,y,w,h)
     na, nt = 3, targets.shape[0]  # number of anchors (3), targets #TODO
@@ -176,11 +184,13 @@ def build_targets(p, targets, model):
         t = targets * gain # t is targets in yolo coordinates (img id, class, x, y, w, h, anchor id)
         # print("first t",t)
 
+        print("nt",nt)
 
         # Check if we have targets
         if nt:
             # Calculate ratio between anchor and target box for both width and height
             r = t[:, :, 4:6] / anchors[:, None]
+
             # Select the ratios that have the highest divergence in any axis and check if the ratio is less than 4
             # j = torch.max(r, 1. / r).max(2)[0] < 4000  # compare #TODO
             if i == 0:  # Only print for first layer to avoid spam
@@ -195,7 +205,10 @@ def build_targets(p, targets, model):
                 for anchor_idx in range(3):
                     anchor_matches = (max_ratios[anchor_idx] < 4).sum()
                     print(f"Anchor {anchor_idx}: {anchor_matches}/{nt} targets match")
-            j = torch.max(r, 1. / r).max(2)[0] < 4  # compare #TODO
+            j = torch.max(r, 1. / r).max(2)[0] < 2  # compare #TODO
+            #! currently this allows for targets over 4 times larger to still work?
+            print(f"Anchor ratios - min: {torch.max(r, 1. / r).min():.2f}, max: {torch.max(r, 1. / r).max():.2f}")
+            print(f"Targets surviving anchor matching: {j.sum()}/{j.numel()}")
             print(f"Targets matched in layer {i}: {j.sum()} out of {j.numel()}")
             # Only use targets that have the correct ratios for their anchors
             # That means we only keep ones that have a matching anchor and we loose the anchor dimension
@@ -205,7 +218,8 @@ def build_targets(p, targets, model):
             # print("test 2", torch.max(r, 1. / r).max(2)[0])
             t = t[j]
         else:
-            t = targets[0]
+            #! add better default case
+            t = targets.new_zeros((0, 7))
 
         # Extract image id in batch and class id
         b, c = t[:, :2].long().T # currently this guy gets sample id and image id...
