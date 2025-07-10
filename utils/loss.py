@@ -239,7 +239,7 @@ def build_targets(p, targets, model):
         gi, gj = gij.T  # grid xy indices
 
         # Convert anchor indexes to int
-        a = t[:, 6].long()
+        a = t_matched[:, 6].long()
         # Add target tensors for this yolo layer to the output lists
         # Add to index list and limit index range to prevent out of bounds
         indices.append((b, a, gj.clamp_(0, gain[3].long() - 1), gi.clamp_(0, gain[2].long() - 1)))
