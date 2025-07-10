@@ -24,8 +24,8 @@ def label_image(img_name, image_dims, annotations, category_lim, mode, image_dir
 
     img_width, img_height = image_dims[image_id]
     label_path = f"labels/{mode}/{str(image_id).zfill(12)}.txt"
-    # if os.path.exists(label_path):
-    #     return f"{image_dir}/{img_name}\n"
+    if os.path.exists(label_path):
+        return f"{image_dir}/{img_name}\n"
     os.makedirs(os.path.dirname(label_path), exist_ok=True)
 
     with open(label_path, "w") as fp:

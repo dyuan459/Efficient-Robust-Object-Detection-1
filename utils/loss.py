@@ -141,6 +141,9 @@ def compute_loss(predictions, targets, model):
 
 
 def build_targets(p, targets, model):
+    #! format should go (batch id, category id, cx, cy, w, h all relative)
+    assert (targets[:, 2:6] >= 0).all() and (targets[:, 2:6] <= 1).all(), "Targets must be normalized!"
+    #? make sure data is normalized
     if targets.numel() > 0:
         print(f"First few raw targets: {targets[:5]}")
         print(f"Targets min/max: {targets.min():.3f}/{targets.max():.3f}")
@@ -154,6 +157,7 @@ def build_targets(p, targets, model):
     na, nt = 3, targets.shape[0]  # number of anchors (3), targets #TODO
     tcls, tbox, indices, anch = [], [], [], []
     gain = torch.ones(7, device=targets.device)  # normalized to gridspace gain
+    t_matched = torch.zeros((0, 7), dtype=targets.dtype, device=targets.device)
     # Make a tensor that iterates 0-2 for 3 anchors and repeat that as many times as we have target boxes
     ai = torch.arange(na, device=targets.device).float().view(na, 1).repeat(1, nt) # anchor id
     # Copy target boxes anchor size times and append an anchor index to each copy the anchor index is also expressed by the new first dimension
@@ -168,7 +172,7 @@ def build_targets(p, targets, model):
         print("no targets?")
     # hm so nothing is being passed in?
     print("Are coordinates normalized (0-1)?", (targets[:, 2:6] <= 1.0).all())
-
+    # yolov3 has 3 layers, squares->circles->high level (i.e. dog head)
     for i, yolo_layer in enumerate(model.yolo_layers):
         # * COCO to yolo size
         # Scale anchors by the yolo grid cell size so that an anchor with the size of the cell would result in 1
@@ -194,10 +198,14 @@ def build_targets(p, targets, model):
 
             # Select the ratios that have the highest divergence in any axis and check if the ratio is less than 4
             # j = torch.max(r, 1. / r).max(2)[0] < 4000  # compare #TODO
-            if i == 0:  # Only print for first layer to avoid spam
+
+            j = torch.max(r, 1. / r).max(2)[0] < 4  # compare #TODO
+            t_matched = t[j]
+            if True:  # Print for more layers to check
                 print(f"\n=== Layer {i} Anchor Diagnosis ===")
                 print(f"Anchors (scaled): {anchors}")
-                print(f"Target box sizes (sample): {t[0, :5, 4:6]}")  # First 5 targets
+                print(f"Matched targets (first 5 w×h): {t_matched[:5, 4:6]}")
+                print(f"Matches: {t_matched.shape[0]} / {t.numel() // 7}")
 
                 max_ratios = torch.max(r, 1. / r).max(2)[0]
                 print(f"Max ratios range: {max_ratios.min():.2f} to {max_ratios.max():.2f}")
@@ -206,7 +214,6 @@ def build_targets(p, targets, model):
                 for anchor_idx in range(3):
                     anchor_matches = (max_ratios[anchor_idx] < 4).sum()
                     print(f"Anchor {anchor_idx}: {anchor_matches}/{nt} targets match")
-            j = torch.max(r, 1. / r).max(2)[0] < 4  # compare #TODO
             #! currently this allows for targets over 4 times larger to still work?
             print(f"Anchor ratios - min: {torch.max(r, 1. / r).min():.2f}, max: {torch.max(r, 1. / r).max():.2f}")
             print(f"Targets surviving anchor matching: {j.sum()}/{j.numel()}")
@@ -223,15 +230,9 @@ def build_targets(p, targets, model):
             t = targets.new_zeros((0, 7))
 
         # Extract image id in batch and class id
-        b, c = t[:, :2].long().T # currently this guy gets sample id and image id...
-        # print("what is t", t[0])
-        # b = t[:, 0].long().T # batch id
-        # # 1 is
-        # c = t[:, 2].long().T # class id
-        # We isolate the target cell associations.
-        # x, y, w, h are allready in the cell coordinate system meaning an x = 1.2 would be 1.2 times cellwidth
-        gxy = t[:, 2:4]
-        gwh = t[:, 4:6]  # grid wh
+        b, c = t_matched[:, :2].long().T
+        gxy = t_matched[:, 2:4]
+        gwh = t_matched[:, 4:6]
         # Cast to int to get an cell index e.g. 1.2 gets associated to cell 1
         gij = gxy.long()
         # Isolate x and y index dimensions
