@@ -18,13 +18,12 @@ def ensure_venv(path='ENV'):
     if not os.path.isdir(path) or not os.path.isfile(os.path.join(path, 'pyvenv.cfg')):
         print(f"Creating virtual environment at ./{path} …")
         subprocess.run([sys.executable, '-m', 'venv', path], check=True)
-        print(f"loading opencv NOTE: it will give you a warning, so far it has not caused any problems though.")
+        print(f"Loading opencv NOTE: it will give you a warning, so far it has not caused any problems though.")
         subprocess.run("module load gcc cuda opencv/4.11.0", shell=True)
-        print(f"Start up venv using . ENV/bin/activate!")
         requirements_path = "requirements-sharc.txt"
         try:
             print(f"Installing dependencies from {requirements_path}...")
-            subprocess.run(f"pip install --no-index -r {requirements_path}")
+            subprocess.check_call([sys.executable, "-m", "pip", "install", "-r",requirements_path, "--no-index"])
             print("All packages installed successfully.")
         except subprocess.CalledProcessError:
             print("Failed to install one or more packages.")
@@ -32,10 +31,7 @@ def ensure_venv(path='ENV'):
             
     else:
         print(f"Found existing virtual environment in ./{path}.")
-        print(f"Starting up venv")
-        python_bin = os.path.join('ENV', 'bin', 'python')
-        os.execv(python_bin, [python_bin] + sys.argv)
-        print("Success")
+    print(f"Start up venv using . ENV/bin/activate!")
 
 
 
