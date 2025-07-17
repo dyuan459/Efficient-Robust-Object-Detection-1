@@ -198,23 +198,23 @@ def run():
                 #     lr = model.hyperparams['learning_rate'] * (batches_done / model.hyperparams['burn_in'])
 
                 #####################################################
-                else:
-                    # Set and parse the learning rate to the steps defined in the cfg
-                    for threshold, value in model.hyperparams['lr_steps']:
-                        if batches_done > threshold:
-                            lr *= value
-
-                #
                 # else:
-                #     # Sort learning rate steps by threshold
-                #     if 'lr_steps' in model.hyperparams:
-                #         lr_steps = sorted(
-                #             model.hyperparams['lr_steps'],
-                #             key=lambda x: x[0]  # Sort by threshold
-                #         )
-                #         for threshold, value in lr_steps:
-                #             if batches_done > threshold:
-                #                 lr *= value
+                #     # Set and parse the learning rate to the steps defined in the cfg
+                #     for threshold, value in model.hyperparams['lr_steps']:
+                #         if batches_done > threshold:
+                #             lr *= value
+
+
+                else:
+                    # Sort learning rate steps by threshold
+                    if 'lr_steps' in model.hyperparams:
+                        lr_steps = sorted(
+                            model.hyperparams['lr_steps'],
+                            key=lambda x: x[0]  # Sort by threshold
+                        )
+                        for threshold, value in lr_steps:
+                            if batches_done > threshold:
+                                lr *= value
                 ##################################################
 
                 # Log the learning rate
