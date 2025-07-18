@@ -252,7 +252,7 @@ def run():
     print_environment_info()
     parser = argparse.ArgumentParser(description="Detect objects on images.")
     parser.add_argument("-m", "--model", type=str, default="config/yolov3.cfg", help="Path to model definition file (.cfg)")
-    parser.add_argument("-w", "--weights", type=str, default="/content/Efficient-Robust-Object-Detection/checkpoints/yolov3_ckpt_300.pth", help="Path to weights or checkpoint file (.weights or .pth)")
+    parser.add_argument("-w", "--weights", type=str, default="weights/yolov3.weights", help="Path to weights or checkpoint file (.weights or .pth)")
     parser.add_argument("-i", "--images", type=str, default="data/samples", help="Path to directory with images to inference")
     parser.add_argument("-c", "--classes", type=str, default="data/COCO2017/coco.names", help="Path to classes label file (.names)")
     parser.add_argument("-o", "--output", type=str, default="output", help="Path to output directory")

@@ -11,8 +11,7 @@ from .utils import to_cpu
 def bbox_iou(box1, box2, x1y1x2y2=True, GIoU=False, DIoU=False, CIoU=False, eps=1e-9):
     # Returns the IoU of box1 to box2. box1 is 4, box2 is nx4
     box2 = box2.T
-    print("box 1 ",box1)
-    print("box 2 ",box2)
+
     # Get the coordinates of bounding boxes
     if x1y1x2y2:  # x1, y1, x2, y2 = box1
         b1_x1, b1_y1, b1_x2, b1_y2 = box1[0], box1[1], box1[2], box1[3]
@@ -57,18 +56,6 @@ def bbox_iou(box1, box2, x1y1x2y2=True, GIoU=False, DIoU=False, CIoU=False, eps=
 
 
 def compute_loss(predictions, targets, model):
-    # TODO: test confidence
-    for layer_index, layer_predictions in enumerate(predictions):
-        # Raw confidences (logits)
-        raw_conf = layer_predictions[..., 4]
-        # Apply sigmoid to get probabilities
-        conf_probs = torch.sigmoid(raw_conf)
-
-        print(f"Layer {layer_index}:")
-        print(f"  Raw confidence range: {raw_conf.min():.3f} to {raw_conf.max():.3f}")
-        print(f"  Sigmoid confidence range: {conf_probs.min():.3f} to {conf_probs.max():.3f}")
-        print(f"  Predictions above 0.5: {(conf_probs > 0.5).sum()}")
-        print(f"  Predictions above 0.1: {(conf_probs > 0.1).sum()}")
     # Check which device was used
     device = targets.device
 
@@ -83,11 +70,9 @@ def compute_loss(predictions, targets, model):
         pos_weight=torch.tensor([1.0], device=device))
     BCEobj = nn.BCEWithLogitsLoss(
         pos_weight=torch.tensor([1.0], device=device))
-    # print("predictions",predictions[0])
+
     # Calculate losses for each yolo layer
     for layer_index, layer_predictions in enumerate(predictions):
-        # print("layer",layer_index)
-        # print("layer pred",layer_predictions[0])
         # Get image ids, anchors, grid index i and j for each target in the current yolo layer
         b, anchor, grid_j, grid_i = indices[layer_index]
         # Build empty object target tensor with the same shape as the object prediction
@@ -96,7 +81,6 @@ def compute_loss(predictions, targets, model):
         # Each target is a label box with some scaling and the association of an anchor box.
         # Label boxes may be associated to 0 or multiple anchors. So they are multiple times or not at all in the targets.
         num_targets = b.shape[0]
-        print("there are {} targets".format(num_targets))
         # Check if there are targets for this batch
         if num_targets:
             # Load the corresponding values from the predictions for each of the targets
@@ -142,105 +126,51 @@ def compute_loss(predictions, targets, model):
 
 
 def build_targets(p, targets, model):
-    #! format should go (batch id, category id, cx, cy, w, h all relative)
-    assert (targets[:, 2:6] >= 0).all() and (targets[:, 2:6] <= 1).all(), "Targets must be normalized!"
-    #? make sure data is normalized
-    if targets.numel() > 0:
-        print(f"First few raw targets: {targets[:5]}")
-        print(f"Targets min/max: {targets.min():.3f}/{targets.max():.3f}")
-        print(f"Not normalized coords: {targets[:,2:6][targets[:,2:6] >1]}")
-        print(f"Are coordinates normalized? {(targets[:, 2:6] >= 0).all() and (targets[:, 2:6] <= 1).all()}")
-    else:
-        print("WARNING: Targets tensor is completely empty!")
-        print("This batch contains no objects to detect.")
-    # print("first targets", targets[0])
     # Build targets for compute_loss(), input targets(image,class,x,y,w,h)
     na, nt = 3, targets.shape[0]  # number of anchors (3), targets #TODO
     tcls, tbox, indices, anch = [], [], [], []
     gain = torch.ones(7, device=targets.device)  # normalized to gridspace gain
-    t_matched = torch.zeros((0, 7), dtype=targets.dtype, device=targets.device)
     # Make a tensor that iterates 0-2 for 3 anchors and repeat that as many times as we have target boxes
     ai = torch.arange(na, device=targets.device).float().view(na, 1).repeat(1, nt) # anchor id
     # Copy target boxes anchor size times and append an anchor index to each copy the anchor index is also expressed by the new first dimension
     targets = torch.cat((targets.repeat(na, 1, 1), ai[:, :, None]), 2)
 
-    print("Target shape:", targets.shape)
-    print("First few targets:", targets[:3])
-    print("Target format should be: (image_id, class, x, y, w, h)")
-    try:
-        print("Target coordinates range:", targets[:, 2:6].min(), "to", targets[:, 2:6].max())
-    except:
-        print("no targets?")
-    # hm so nothing is being passed in?
-    print("Are coordinates normalized (0-1)?", (targets[:, 2:6] <= 1.0).all())
-    # yolov3 has 3 layers, squares->circles->high level (i.e. dog head)
     for i, yolo_layer in enumerate(model.yolo_layers):
         # * COCO to yolo size
         # Scale anchors by the yolo grid cell size so that an anchor with the size of the cell would result in 1
         anchors = yolo_layer.anchors / yolo_layer.stride
-        # print("anchors build targets",anchors)
         # Add the number of yolo cells in this layer the gain tensor
         # The gain tensor matches the columns of our targets (img id, class, x, y, w, h, anchor id)
         gain[2:6] = torch.tensor(p[i].shape)[[3, 2, 3, 2]]  # xyxy gain
-        # print("p shape",p[i].shape)
-        # print("targets",targets.shape,flush=True)
-        # print("gain",gain,flush=True)
-
         # Scale targets by the number of yolo layer cells, they are now in the yolo cell coordinate system
         t = targets * gain # t is targets in yolo coordinates (img id, class, x, y, w, h, anchor id)
-        # print("first t",t)
-
-        print("nt",nt)
-
+        
         # Check if we have targets
         if nt:
-            # Calculate ratio between anchor and target box for both width and height
+            # Calculate ration between anchor and target box for both width and height
             r = t[:, :, 4:6] / anchors[:, None]
-
             # Select the ratios that have the highest divergence in any axis and check if the ratio is less than 4
-            # j = torch.max(r, 1. / r).max(2)[0] < 4000  # compare #TODO
-
             j = torch.max(r, 1. / r).max(2)[0] < 4  # compare #TODO
-            t_matched = t[j]
-            if True:  # Print for more layers to check
-                print(f"\n=== Layer {i} Anchor Diagnosis ===")
-                print(f"Anchors (scaled): {anchors}")
-                print(f"Matched targets (first 5 w×h): {t_matched[:5, 4:6]}")
-                print(f"Matches: {t_matched.shape[0]} / {t.numel() // 7}")
-
-                max_ratios = torch.max(r, 1. / r).max(2)[0]
-                print(f"Max ratios range: {max_ratios.min():.2f} to {max_ratios.max():.2f}")
-
-                # Count matches for each anchor
-                for anchor_idx in range(3):
-                    anchor_matches = (max_ratios[anchor_idx] < 4).sum()
-                    print(f"Anchor {anchor_idx}: {anchor_matches}/{nt} targets match")
-            #! currently this allows for targets over 4 times larger to still work?
-            print(f"Anchor ratios - min: {torch.max(r, 1. / r).min():.2f}, max: {torch.max(r, 1. / r).max():.2f}")
-            print(f"Targets surviving anchor matching: {j.sum()}/{j.numel()}")
-            print(f"Targets matched in layer {i}: {j.sum()} out of {j.numel()}")
             # Only use targets that have the correct ratios for their anchors
             # That means we only keep ones that have a matching anchor and we loose the anchor dimension
             # The anchor id is still saved in the 7th value of each target
-            # print("this is j",j)
-            # print("test maxxing", torch.max(r, 1. / r)[0])
-            # print("test 2", torch.max(r, 1. / r).max(2)[0])
             t = t[j]
         else:
-            #! add better default case
-            t = targets.new_zeros((0, 7))
+            t = targets[0]
 
         # Extract image id in batch and class id
-        b, c = t_matched[:, :2].long().T
-        gxy = t_matched[:, 2:4]
-        gwh = t_matched[:, 4:6]
+        b, c = t[:, :2].long().T
+        # We isolate the target cell associations.
+        # x, y, w, h are allready in the cell coordinate system meaning an x = 1.2 would be 1.2 times cellwidth
+        gxy = t[:, 2:4]
+        gwh = t[:, 4:6]  # grid wh
         # Cast to int to get an cell index e.g. 1.2 gets associated to cell 1
         gij = gxy.long()
         # Isolate x and y index dimensions
         gi, gj = gij.T  # grid xy indices
 
         # Convert anchor indexes to int
-        a = t_matched[:, 6].long()
+        a = t[:, 6].long()
         # Add target tensors for this yolo layer to the output lists
         # Add to index list and limit index range to prevent out of bounds
         indices.append((b, a, gj.clamp_(0, gain[3].long() - 1), gi.clamp_(0, gain[2].long() - 1)))
@@ -249,7 +179,6 @@ def build_targets(p, targets, model):
         # Add correct anchor for each target to the list
         anch.append(anchors[a])
         # Add class for each target to the list
-        print("class",c)
         tcls.append(c)
 
     return tcls, tbox, indices, anch

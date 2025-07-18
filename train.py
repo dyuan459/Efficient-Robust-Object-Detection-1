@@ -12,7 +12,6 @@ import torch.optim as optim
 
 from models.YOLOv3 import load_model
 from utils.logger import Logger
-from utils.transforms import DEFAULT_TRANSFORMS
 from utils.utils import to_cpu, load_classes, print_environment_info, provide_determinism, worker_seed_set
 from utils.datasets import ListDataset
 from utils.augmentations import AUGMENTATION_TRANSFORMS
@@ -25,10 +24,9 @@ from terminaltables import AsciiTable
 
 from torchsummary import summary
 
-import math
 
 def _create_data_loader(img_path, batch_size, img_size, n_cpu, multiscale_training=False):
-    """Creates a DataLoader for training using AUGMENTATION_TRANSFORMS.
+    """Creates a DataLoader for training.
 
     :param img_path: Path to file containing all paths to training images.
     :type img_path: str
@@ -64,11 +62,11 @@ def run():
     parser = argparse.ArgumentParser(description="Trains the YOLO model.")
     parser.add_argument("-m", "--model", type=str, default="config/yolov3.cfg", help="Path to model definition file (.cfg)")
     parser.add_argument("-d", "--data", type=str, default="config/coco.data", help="Path to data config file (.data)")
-    parser.add_argument("-e", "--epochs", type=int, default=300, help="Number of epochs") # 300 epoch took around half an hour on T4 Google GPU
+    parser.add_argument("-e", "--epochs", type=int, default=300, help="Number of epochs")
     parser.add_argument("-v", "--verbose", action='store_true', help="Makes the training more verbose")
-    parser.add_argument("--n_cpu", type=int, default=8, help="Number of cpu threads to use during batch generation") # can cause crashing on low end laptops
+    parser.add_argument("--n_cpu", type=int, default=8, help="Number of cpu threads to use during batch generation")
     parser.add_argument("--pretrained_weights", type=str, help="Path to checkpoint file (.weights or .pth). Starts training from checkpoint model")
-    parser.add_argument("--checkpoint_interval", type=int, default=5, help="Interval of epochs between saving model weights") # 300 checkpoints is around 72GB
+    parser.add_argument("--checkpoint_interval", type=int, default=50, help="Interval of epochs between saving model weights")
     parser.add_argument("--evaluation_interval", type=int, default=1, help="Interval of epochs between evaluations on validation set")
     parser.add_argument("--multiscale_training", action="store_true", help="Allow multi-scale training")
     parser.add_argument("--iou_thres", type=float, default=0.5, help="Evaluation: IOU threshold required to qualify as detected")
@@ -101,20 +99,12 @@ def run():
 
     model = load_model(args.model, args.pretrained_weights)
 
-    model = model.to(device)  # ensures model is on GPU if available
-
     # Print model
     if args.verbose:
         summary(model, input_size=(3, model.hyperparams['height'], model.hyperparams['height']))
 
-    # mini_batch_size = model.hyperparams['batch'] // model.hyperparams['subdivisions']
+    mini_batch_size = model.hyperparams['batch'] // model.hyperparams['subdivisions']
 
-    #TODO: Explain exactly why this is better:
-
-    # With ceiling division:
-
-    mini_batch_size = math.ceil(model.hyperparams['batch'] / model.hyperparams['subdivisions'])
-    ###########################################
     # #################
     # Create Dataloader
     # #################
@@ -165,15 +155,14 @@ def run():
         model.train()  # Set model to training mode
 
         for batch_i, (_, imgs, targets) in enumerate(tqdm.tqdm(dataloader, desc=f"Training Epoch {epoch}")):
-            # print(f"Image training value range: {imgs.min()} to {imgs.max()}") # just checks if images aren't blank and if they're normalized
             batches_done = len(dataloader) * epoch + batch_i
 
             imgs = imgs.to(device, non_blocking=True)
-            targets = targets.to(device) # targets is a tensor, now we're sending it to device
+            targets = targets.to(device)
 
             outputs = model(imgs)
 
-            loss, loss_components = compute_loss(outputs, targets, model)
+            loss, loss_components = compute_loss(outputs, targets, model) # output is y_pred, target is y
 
             loss.backward()
 
@@ -185,38 +174,14 @@ def run():
                 # Adapt learning rate
                 # Get learning rate defined in cfg
                 lr = model.hyperparams['learning_rate']
-
-
                 if batches_done < model.hyperparams['burn_in']:
                     # Burn in
                     lr *= (batches_done / model.hyperparams['burn_in'])
-                #
-
-                # # With absolute scaling:
-                # if batches_done < model.hyperparams['burn_in']:
-                #     # Burn in - absolute scaling from 0 to base LR
-                #     lr = model.hyperparams['learning_rate'] * (batches_done / model.hyperparams['burn_in'])
-
-                #####################################################
-                # else:
-                #     # Set and parse the learning rate to the steps defined in the cfg
-                #     for threshold, value in model.hyperparams['lr_steps']:
-                #         if batches_done > threshold:
-                #             lr *= value
-
-
                 else:
-                    # Sort learning rate steps by threshold
-                    if 'lr_steps' in model.hyperparams:
-                        lr_steps = sorted(
-                            model.hyperparams['lr_steps'],
-                            key=lambda x: x[0]  # Sort by threshold
-                        )
-                        for threshold, value in lr_steps:
-                            if batches_done > threshold:
-                                lr *= value
-                ##################################################
-
+                    # Set and parse the learning rate to the steps defined in the cfg
+                    for threshold, value in model.hyperparams['lr_steps']:
+                        if batches_done > threshold:
+                            lr *= value
                 # Log the learning rate
                 logger.scalar_summary("train/learning_rate", lr, batches_done)
                 # Set learning rate
@@ -231,19 +196,16 @@ def run():
             # ############
             # Log progress
             # ############
-            # if args.verbose:
-
-
-            if args.verbose and loss_components is not None and len(loss_components) >= 4:
+            if args.verbose:
                 print(AsciiTable(
-                        [
-                            ["Type", "Value"],
-                            ["IoU loss", float(loss_components[0])],
-                            ["Object loss", float(loss_components[1])],
-                            ["Class loss", float(loss_components[2])],
-                            ["Loss", float(loss_components[3])],
-                            ["Batch loss", to_cpu(loss).item()],
-                        ]).table)
+                    [
+                        ["Type", "Value"],
+                        ["IoU loss", float(loss_components[0])],
+                        ["Object loss", float(loss_components[1])],
+                        ["Class loss", float(loss_components[2])],
+                        ["Loss", float(loss_components[3])],
+                        ["Batch loss", to_cpu(loss).item()],
+                    ]).table)
 
             # Tensorboard logging
             tensorboard_log = [
@@ -283,22 +245,14 @@ def run():
                 verbose=args.verbose
             )
 
-            # if metrics_output is not None:
-            #     precision, recall, AP, f1, ap_class = metrics_output
-
-            # With tuple unpacking guard, be slightly safer:
-            if metrics_output is not None and len(metrics_output) == 5:
+            if metrics_output is not None:
                 precision, recall, AP, f1, ap_class = metrics_output
-                print(metrics_output)
-            #################################
                 evaluation_metrics = [
                     ("validation/precision", precision.mean()),
                     ("validation/recall", recall.mean()),
                     ("validation/mAP", AP.mean()),
                     ("validation/f1", f1.mean())]
                 logger.list_of_scalars_summary(evaluation_metrics, epoch)
-
-
 
 
 if __name__ == "__main__":

@@ -125,9 +125,7 @@ def ap_per_class(tp, conf, pred_cls, target_cls):
     for c in tqdm.tqdm(unique_classes, desc="Computing AP"):
         i = pred_cls == c
         n_gt = (target_cls == c).sum()  # Number of ground truth objects
-        # print(n_gt)
         n_p = i.sum()  # Number of predicted objects
-        # print(n_p)
 
         if n_p == 0 and n_gt == 0:
             continue
@@ -189,9 +187,6 @@ def compute_ap(recall, precision):
 def get_batch_statistics(outputs, targets, iou_threshold):
     """ Compute true positives, predicted scores and predicted labels per sample """
     batch_metrics = []
-    print("outputs",outputs)
-    print("output length",len(outputs))
-    print("targets",targets)
     for sample_i in range(len(outputs)):
 
         if outputs[sample_i] is None:
@@ -204,12 +199,12 @@ def get_batch_statistics(outputs, targets, iou_threshold):
 
         true_positives = np.zeros(pred_boxes.shape[0])
 
-        annotations = targets[targets[:, 0] == sample_i][:, 1:] # filter for the parts of target that corresponds to this batch???
-        print("annotations", annotations)
-        target_labels = annotations[:, 0]  # Now class_id is at position 0
+        annotations = targets[targets[:, 0] == sample_i][:, 1:]
+        target_labels = annotations[:, 0] if len(annotations) else []
         if len(annotations):
             detected_boxes = []
             target_boxes = annotations[:, 1:]
+
             for pred_i, (pred_box, pred_label) in enumerate(zip(pred_boxes, pred_labels)):
 
                 # If targets are found break
@@ -222,6 +217,7 @@ def get_batch_statistics(outputs, targets, iou_threshold):
 
                 # Filter target_boxes by pred_label so that we only match against boxes of our own label
                 filtered_target_position, filtered_targets = zip(*filter(lambda x: target_labels[x[0]] == pred_label, enumerate(target_boxes)))
+
                 # Find the best matching target for our predicted box
                 iou, box_filtered_index = bbox_iou(pred_box.unsqueeze(0), torch.stack(filtered_targets)).max(0)
 

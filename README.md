@@ -1,11 +1,17 @@
 # Efficient and Adversarially Robust Object Detection
 Warning: Checkpoints are ~240Mb per so 300 checkpoints would be 72Gb
+
 ## Usage
-python3.8 -m venv env or python -m venv env
+python3.12 -m venv env or python -m venv env
 
-env\Scripts\activate
+. env\Scripts\activate
+### GPU:
+Consult the "Install PyTorch" portion of https://pytorch.org/ if you have CUDA
 
-pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118 (NOTE: This is for CUDA 1.1.8)
+### CPU:
+If you want to just use CPU then: 
+pip3 install torch torchvision torchaudio 
+NOTE: Very slow
 
 pip install -r requirements.txt
 

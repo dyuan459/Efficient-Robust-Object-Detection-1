@@ -1,7 +1,5 @@
 #! /usr/bin/env python3
-"""
-Needs train to run first! But also includes validation methods
-"""
+
 from __future__ import division
 
 import argparse
@@ -16,7 +14,7 @@ from torch.autograd import Variable
 
 from models.YOLOv3 import load_model
 from utils.utils import load_classes, ap_per_class, get_batch_statistics, non_max_suppression, to_cpu, xywh2xyxy, print_environment_info
-from utils.datasets import ListDataset, ValidDataset
+from utils.datasets import ListDataset
 from utils.transforms import DEFAULT_TRANSFORMS
 from utils.parse_config import parse_data_config
 
@@ -74,8 +72,6 @@ def print_eval_stats(metrics_output, class_names, verbose):
                 ap_table += [[c, class_names[c], "%.5f" % AP[i]]]
             print(AsciiTable(ap_table).table)
         print(f"---- mAP {AP.mean():.5f} ----")
-        with open("map.txt", "a") as f:
-            f.write(f"\n---- mAP {AP.mean():.5f} ----")
     else:
         print("---- mAP not measured (no detections found by model) ----")
 
@@ -108,20 +104,18 @@ def _evaluate(model, dataloader, class_names, img_size, iou_thres, conf_thres, n
     labels = []
     sample_metrics = []  # List of tuples (TP, confs, pred)
     for _, imgs, targets in tqdm.tqdm(dataloader, desc="Validating"):
-        # the current targets format is (sample id, class id, rel x, rel y, rel w, rel h)
         # Extract labels
-        labels += targets[:, 1].tolist() # labels are at 1, sample id is at 0
+        labels += targets[:, 1].tolist()
         # Rescale target
-        targets[:, 2:6] = xywh2xyxy(targets[:, 2:6]) # just a guess but it should go category, center x, center y, height, width, anchor?
-        targets[:, 2:6] *= img_size
-        # loss might actually expect normalized xywh?
+        targets[:, 2:] = xywh2xyxy(targets[:, 2:])
+        targets[:, 2:] *= img_size
+
         imgs = Variable(imgs.type(Tensor), requires_grad=False)
 
         with torch.no_grad():
             outputs = model(imgs)
             outputs = non_max_suppression(outputs, conf_thres=conf_thres, iou_thres=nms_thres)
-        print("outputs from model",outputs)
-        print(type(targets))
+
         sample_metrics += get_batch_statistics(outputs, targets, iou_threshold=iou_thres)
 
     if len(sample_metrics) == 0:  # No detections over whole validation set.
@@ -154,7 +148,7 @@ def _create_validation_data_loader(img_path, batch_size, img_size, n_cpu):
     :return: Returns DataLoader
     :rtype: DataLoader
     """
-    dataset = ValidDataset(img_path, img_size=img_size, multiscale=False, transform=DEFAULT_TRANSFORMS)
+    dataset = ListDataset(img_path, img_size=img_size, multiscale=False, transform=DEFAULT_TRANSFORMS)
     dataloader = DataLoader(
         dataset,
         batch_size=batch_size,
