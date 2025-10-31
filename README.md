@@ -1,4 +1,5 @@
 # Efficient and Adversarially Robust Object Detection
+NOTE: I primarily worked on https://github.com/maxinimize/Efficient-Robust-Object-Detection, this became more of a sandbox to test with.
 Warning: Checkpoints are ~240Mb per so 300 checkpoints would be 72Gb
 
 ## Usage
